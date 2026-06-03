@@ -1,0 +1,53 @@
+# ============================================================
+# Docker Compose for the Automated Trading System
+# Runs the trading system with monitoring dashboard
+# ============================================================
+
+version: "3.8"
+
+services:
+  # Main trading application
+  trading-system:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-system
+    ports:
+      - "5000:5000"     # Monitoring dashboard & REST API
+    volumes:
+      - ./data:/app/data                   # Persistent database storage
+      - ./logs:/app/logs                   # Persistent log files
+      - ./reports:/app/reports             # Backtesting reports and charts
+      - ./state:/app/state                 # Recovery state files
+    environment:
+      - PYTHONUNBUFFERED=1
+      - TRADING_MODE=paper                 # Options: backtest, paper, live
+      - INITIAL_BALANCE=100000
+      - LOG_LEVEL=INFO
+      # Optional: Slack webhook for alerts
+      # - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your/webhook/url
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # Override default command for paper trading mode
+    command: ["python", "main.py", "--mode", "paper", "--dashboard-port", "5000"]
+
+  # Backtesting service (run-once, generates reports)
+  backtester:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-backtester
+    volumes:
+      - ./data:/app/data
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["python", "main.py", "--mode", "backtest", "--visualize"]
+    profiles:
+      - backtest    # Only starts when explicitly requested: docker compose --profile backtest up backtester

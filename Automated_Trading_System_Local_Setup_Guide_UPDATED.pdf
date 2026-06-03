@@ -1,0 +1,308 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 4039 >>
+stream
+BT
+/F2 22 Tf
+1 0 0 1 72 742 Tm (Automated Trading System) Tj
+/F1 13 Tf
+1 0 0 1 72 712 Tm (Technical Architecture, Tech Stack, and Local Setup Guide) Tj
+/F1 10.5 Tf
+1 0 0 1 72 690 Tm (Generated for the Codex-created application copy in automated_trading_system_codex.) Tj
+/F2 14 Tf
+1 0 0 1 72 669 Tm (1. What Was Created) Tj
+/F1 10.5 Tf
+1 0 0 1 72 649 Tm (A clean and improved Python automated trading application was created for BTC/USDT and) Tj
+/F1 10.5 Tf
+1 0 0 1 72 634 Tm (XAU/USD. The application includes data feeds, technical indicators, multi-strategy) Tj
+/F1 10.5 Tf
+1 0 0 1 72 619 Tm (signal generation, risk management, portfolio accounting, simulated execution,) Tj
+/F1 10.5 Tf
+1 0 0 1 72 604 Tm (backtesting, reporting, and a Flask dashboard for monitoring paper/live trading) Tj
+/F1 10.5 Tf
+1 0 0 1 72 589 Tm (sessions.) Tj
+/F1 10.5 Tf
+1 0 0 1 72 574 Tm (Reliability fixes were included in this copy: corrected short-position accounting, mark-) Tj
+/F1 10.5 Tf
+1 0 0 1 72 559 Tm (to-market risk value refreshes before trade approval, custom balance handling in) Tj
+/F1 10.5 Tf
+1 0 0 1 72 544 Tm (backtest metrics, safer default live leverage, and focused portfolio accounting tests.) Tj
+/F2 14 Tf
+1 0 0 1 72 523 Tm (2. Technical Architecture) Tj
+/F1 10.5 Tf
+1 0 0 1 86 503 Tm (- CLI entry point: main.py selects backtest, paper, or live mode and wires the) Tj
+/F1 10.5 Tf
+1 0 0 1 86 488 Tm (- system components together.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 473 Tm (- Configuration layer: config/settings.py defines data feed, strategy, risk,) Tj
+/F1 10.5 Tf
+1 0 0 1 86 458 Tm (- execution, monitoring, currency, and backtest settings.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 443 Tm (- Data layer: src/data fetches BTC and gold market data from Binance/CCXT, Yahoo) Tj
+/F1 10.5 Tf
+1 0 0 1 86 428 Tm (- Finance, CoinGecko, Alpha Vantage, OANDA, and fallback sources where configured.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 413 Tm (- Feature layer: src/indicators calculates technical indicators, volatility, and) Tj
+/F1 10.5 Tf
+1 0 0 1 86 398 Tm (- regime features used by the strategies.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 383 Tm (- Strategy layer: src/strategies contains trend-following, mean-reversion, breakout,) Tj
+/F1 10.5 Tf
+1 0 0 1 86 368 Tm (- momentum, volatility, correlation/macro, grid, ML, and ensemble strategies.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 353 Tm (- Risk layer: src/risk enforces drawdown, exposure, allocation, stop-loss, take-) Tj
+/F1 10.5 Tf
+1 0 0 1 86 338 Tm (- profit, trailing-stop, and position-sizing controls.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 323 Tm (- Execution layer: src/execution models orders, portfolio state, simulated broker) Tj
+/F1 10.5 Tf
+1 0 0 1 86 308 Tm (- behavior, and optional live broker integrations.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 293 Tm (- Backtesting layer: src/backtesting simulates historical trading, captures) Tj
+/F1 10.5 Tf
+1 0 0 1 86 278 Tm (- equity/trade logs, and calculates performance metrics.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 263 Tm (- Monitoring layer: src/monitoring provides the Flask dashboard, REST APIs, alerts,) Tj
+/F1 10.5 Tf
+1 0 0 1 86 248 Tm (- structured logs, and state recovery helpers.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 233 Tm (- Visualization layer: src/visualization generates charts for backtest and trading) Tj
+/F1 10.5 Tf
+1 0 0 1 86 218 Tm (- reports.) Tj
+/F2 14 Tf
+1 0 0 1 72 197 Tm (3. Tech Stack) Tj
+/F1 10.5 Tf
+1 0 0 1 86 177 Tm (- Language: Python 3.10+ recommended.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 162 Tm (- Data and computation: pandas, numpy, scipy, yfinance.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 147 Tm (- Technical analysis: ta.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 132 Tm (- Machine learning: scikit-learn, XGBoost, PyTorch, joblib.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 117 Tm (- Market/exchange connectivity: requests, websocket-client, aiohttp, ccxt.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 102 Tm (- Scheduling: schedule, APScheduler.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 87 Tm (- Storage: SQLite through SQLAlchemy.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 72 Tm (- Web dashboard/API: Flask, Flask-SocketIO, Flask-CORS, Jinja2.) Tj
+/F1 9 Tf
+1 0 0 1 72 36 Tm (Page 1) Tj
+ET
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 3504 >>
+stream
+BT
+/F1 10.5 Tf
+1 0 0 1 86 742 Tm (- Charts/reports: matplotlib, seaborn, TradingView Lightweight Charts in the) Tj
+/F1 10.5 Tf
+1 0 0 1 86 727 Tm (- dashboard.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 712 Tm (- Logging/terminal output: loguru, rich.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 697 Tm (- Testing and quality: pytest, pytest-asyncio, pytest-cov, flake8, black, isort.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 682 Tm (- Containerization: Docker and Docker Compose.) Tj
+/F2 14 Tf
+1 0 0 1 72 661 Tm (4. Local Setup Guide) Tj
+/F1 10.5 Tf
+1 0 0 1 72 641 Tm (Use the commands below from Windows PowerShell unless your environment differs.) Tj
+/F2 14 Tf
+1 0 0 1 72 620 Tm (Step 1: Start With One Script Recommended) Tj
+/F1 10.5 Tf
+1 0 0 1 72 600 Tm (The easiest way to start the local application is to run the included PowerShell) Tj
+/F1 10.5 Tf
+1 0 0 1 72 585 Tm (launcher. It creates the virtual environment if needed, installs dependencies, creates) Tj
+/F1 10.5 Tf
+1 0 0 1 72 570 Tm (.env from .env.example if missing, and starts the application.) Tj
+/F3 9.5 Tf
+1 0 0 1 86 555 Tm (cd D:\\Training_Materials\\AI\\algo_trading\\web\\live\\automated_trading_system_codex) Tj
+/F3 9.5 Tf
+1 0 0 1 86 540 Tm (.\\Start-Application.ps1) Tj
+/F1 10.5 Tf
+1 0 0 1 72 525 Tm (By default this starts paper trading on port 5000. After it starts, open the dashboard) Tj
+/F1 10.5 Tf
+1 0 0 1 72 510 Tm (at http://localhost:5000.) Tj
+/F1 10.5 Tf
+1 0 0 1 72 495 Tm (Useful one-script options:) Tj
+/F3 9.5 Tf
+1 0 0 1 86 480 Tm (.\\Start-Application.ps1 -Mode backtest) Tj
+/F3 9.5 Tf
+1 0 0 1 86 465 Tm (.\\Start-Application.ps1 -Mode backtest -Visualize) Tj
+/F3 9.5 Tf
+1 0 0 1 86 450 Tm (.\\Start-Application.ps1 -Mode paper -Balance 50000 -DashboardPort 5050) Tj
+/F3 9.5 Tf
+1 0 0 1 86 435 Tm (.\\Start-Application.ps1 -SkipInstall) Tj
+/F1 10.5 Tf
+1 0 0 1 72 420 Tm (If the one-script launcher completes successfully, you do not need to run the manual) Tj
+/F1 10.5 Tf
+1 0 0 1 72 405 Tm (steps below. The manual steps are included for better control, troubleshooting, and) Tj
+/F1 10.5 Tf
+1 0 0 1 72 390 Tm (learning what the launcher does.) Tj
+/F2 14 Tf
+1 0 0 1 72 369 Tm (Manual Step 1: Open The Application Folder) Tj
+/F3 9.5 Tf
+1 0 0 1 86 349 Tm (cd D:\\Training_Materials\\AI\\algo_trading\\web\\live\\automated_trading_system_codex) Tj
+/F2 14 Tf
+1 0 0 1 72 328 Tm (Manual Step 2: Create a Python Virtual Environment) Tj
+/F3 9.5 Tf
+1 0 0 1 86 308 Tm (python -m venv venv) Tj
+/F3 9.5 Tf
+1 0 0 1 86 293 Tm (.\\venv\\Scripts\\Activate.ps1) Tj
+/F2 14 Tf
+1 0 0 1 72 272 Tm (Manual Step 3: Install Dependencies) Tj
+/F3 9.5 Tf
+1 0 0 1 86 252 Tm (python -m pip install --upgrade pip) Tj
+/F3 9.5 Tf
+1 0 0 1 86 237 Tm (pip install -r requirements.txt) Tj
+/F1 10.5 Tf
+1 0 0 1 72 222 Tm (If PyTorch installation is slow or platform-specific, install the correct wheel from the) Tj
+/F1 10.5 Tf
+1 0 0 1 72 207 Tm (official PyTorch selector for your CPU/GPU setup, then rerun the requirements) Tj
+/F1 10.5 Tf
+1 0 0 1 72 192 Tm (installation if needed.) Tj
+/F2 14 Tf
+1 0 0 1 72 171 Tm (Manual Step 4: Configure Environment Variables) Tj
+/F3 9.5 Tf
+1 0 0 1 86 151 Tm (Copy-Item .env.example .env) Tj
+/F1 10.5 Tf
+1 0 0 1 72 136 Tm (For backtest and paper mode, API keys are optional because public/free data feeds are) Tj
+/F1 10.5 Tf
+1 0 0 1 72 121 Tm (used. For live mode, set only the broker credentials you intend to use. Keep) Tj
+/F1 10.5 Tf
+1 0 0 1 72 106 Tm (BINANCE_TESTNET, DELTA_TESTNET, and XM_DEMO enabled while testing.) Tj
+/F1 9 Tf
+1 0 0 1 72 36 Tm (Page 2) Tj
+ET
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 3464 >>
+stream
+BT
+/F2 14 Tf
+1 0 0 1 72 736 Tm (Manual Step 5: Run a Backtest) Tj
+/F3 9.5 Tf
+1 0 0 1 86 716 Tm (python main.py --mode backtest) Tj
+/F3 9.5 Tf
+1 0 0 1 86 701 Tm (python main.py --mode backtest --visualize) Tj
+/F1 10.5 Tf
+1 0 0 1 72 686 Tm (Backtest mode fetches historical BTC/USDT and XAU/USD data, runs the strategy ensemble,) Tj
+/F1 10.5 Tf
+1 0 0 1 72 671 Tm (prints the performance report, and optionally writes charts under reports/charts.) Tj
+/F2 14 Tf
+1 0 0 1 72 650 Tm (Manual Step 6: Run Paper Trading Locally) Tj
+/F3 9.5 Tf
+1 0 0 1 86 630 Tm (python main.py --mode paper --balance 100000 --dashboard-port 5000) Tj
+/F1 10.5 Tf
+1 0 0 1 72 615 Tm (Open the dashboard at http://localhost:5000. Paper mode uses simulated execution and is) Tj
+/F1 10.5 Tf
+1 0 0 1 72 600 Tm (the preferred local validation mode before any live broker configuration is enabled.) Tj
+/F2 14 Tf
+1 0 0 1 72 579 Tm (Manual Step 7: Run Tests) Tj
+/F3 9.5 Tf
+1 0 0 1 86 559 Tm (pytest tests -q) Tj
+/F1 10.5 Tf
+1 0 0 1 72 544 Tm (If pytest is not recognized, install dependencies inside the virtual environment first.) Tj
+/F1 10.5 Tf
+1 0 0 1 72 529 Tm (The Codex copy also includes tests/test_portfolio.py to validate long and short) Tj
+/F1 10.5 Tf
+1 0 0 1 72 514 Tm (portfolio accounting.) Tj
+/F2 14 Tf
+1 0 0 1 72 493 Tm (Manual Step 8: Optional Docker Run) Tj
+/F3 9.5 Tf
+1 0 0 1 86 473 Tm (docker compose --profile backtest up backtester) Tj
+/F3 9.5 Tf
+1 0 0 1 86 458 Tm (docker compose up trading-system) Tj
+/F1 10.5 Tf
+1 0 0 1 72 443 Tm (When using Docker, ensure persistent volumes are used for data, logs, reports, and state) Tj
+/F1 10.5 Tf
+1 0 0 1 72 428 Tm (if you plan to keep runtime history.) Tj
+/F2 14 Tf
+1 0 0 1 72 407 Tm (5. Important Reliability Notes) Tj
+/F1 10.5 Tf
+1 0 0 1 86 387 Tm (- Start with backtest and paper mode only. Live trading uses real funds and should) Tj
+/F1 10.5 Tf
+1 0 0 1 86 372 Tm (- be enabled only after credentials, exchange permissions, and risk limits are) Tj
+/F1 10.5 Tf
+1 0 0 1 86 357 Tm (- reviewed.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 342 Tm (- Default live leverage in the Codex copy is 1x. Set LEVERAGE explicitly only after) Tj
+/F1 10.5 Tf
+1 0 0 1 86 327 Tm (- confirming broker margin behavior and maximum-loss scenarios.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 312 Tm (- The Flask dashboard binds to port 5000 by default. For production hosting, place) Tj
+/F1 10.5 Tf
+1 0 0 1 86 297 Tm (- it behind a reverse proxy with HTTPS, authentication, and firewall restrictions.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 282 Tm (- Before AWS deployment, add a pinned lock file, CI tests, secrets management,) Tj
+/F1 10.5 Tf
+1 0 0 1 86 267 Tm (- CloudWatch/log shipping, health checks, backups, and a documented rollback plan.) Tj
+/F2 14 Tf
+1 0 0 1 72 246 Tm (6. Key Files) Tj
+/F1 10.5 Tf
+1 0 0 1 86 226 Tm (- main.py: application entry point and mode selection.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 211 Tm (- requirements.txt: Python dependency list.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 196 Tm (- config/settings.py: main configuration dataclasses.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 181 Tm (- src/execution/portfolio.py: portfolio and PnL accounting.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 166 Tm (- src/risk/risk_manager.py: exposure, drawdown, and trade approval logic.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 151 Tm (- src/monitoring/dashboard.py: dashboard and REST API.) Tj
+/F1 10.5 Tf
+1 0 0 1 86 136 Tm (- CODEX_SUMMARY.md: summary of Codex changes and recommended next improvements.) Tj
+/F1 9 Tf
+1 0 0 1 72 36 Tm (Page 3) Tj
+ET
+endstream
+endobj
+xref
+0 12
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000134 00000 n 
+0000000204 00000 n 
+0000000279 00000 n 
+0000000347 00000 n 
+0000000493 00000 n 
+0000004584 00000 n 
+0000004730 00000 n 
+0000008286 00000 n 
+0000008434 00000 n 
+trailer
+<< /Size 12 /Root 1 0 R >>
+startxref
+11951
+%%EOF
