@@ -189,10 +189,10 @@ class EnsembleStrategy(BaseStrategy):
             elif sig.is_sell:
                 sell_signals.append(sig)
 
-        # --- "Best Signal" mode ---
-        # If ANY strategy generates a signal with confidence > 0.3, use it.
-        # This ensures the system trades even when only one strategy fires.
-        # When multiple strategies agree, use the highest weighted confidence.
+        # --- Quality consensus mode ---
+        # Avoid overtrading: one weak strategy is not enough. A trade needs
+        # either at least two agreeing strategies, or one very high-confidence
+        # signal from a strategy designed for selective entries.
         best_buy = max(buy_signals, key=lambda s: s.confidence, default=None)
         best_sell = max(sell_signals, key=lambda s: s.confidence, default=None)
 
@@ -206,11 +206,19 @@ class EnsembleStrategy(BaseStrategy):
 
         # Minimum confidence threshold — balanced for quality trades over quantity
         # Higher threshold filters out weak/noisy signals that cause whipsaw losses
-        min_confidence_threshold = 0.45
+        min_confidence_threshold = 0.62
+        min_agreeing_signals = 2
+        selective_strategies = {"quality_trend", "trend_following", "breakout"}
 
         # Determine ensemble signal — best signal wins
         if best_buy and (not best_sell or buy_score >= sell_score):
-            if best_buy.confidence >= min_confidence_threshold:
+            enough_consensus = len(buy_signals) >= min_agreeing_signals
+            selective_override = (
+                best_buy.strategy_name in selective_strategies
+                and best_buy.confidence >= 0.74
+                and sell_score < buy_score * 0.55
+            )
+            if best_buy.confidence >= min_confidence_threshold and (enough_consensus or selective_override):
                 # Boost confidence if multiple strategies agree
                 confidence = min(1.0, best_buy.confidence + (buy_consensus * 0.2))
                 signal = Signal.STRONG_BUY if confidence > 0.7 else Signal.BUY
@@ -231,12 +239,19 @@ class EnsembleStrategy(BaseStrategy):
                         "sub_signals": all_metadata,
                         "best_strategy": best_buy.strategy_name,
                         "buy_consensus": buy_consensus,
+                        "buy_signal_count": len(buy_signals),
                         "regime": current_regime.value if current_regime else "unknown",
                     },
                 )
 
         if best_sell and (not best_buy or sell_score > buy_score):
-            if best_sell.confidence >= min_confidence_threshold:
+            enough_consensus = len(sell_signals) >= min_agreeing_signals
+            selective_override = (
+                best_sell.strategy_name in selective_strategies
+                and best_sell.confidence >= 0.74
+                and buy_score < sell_score * 0.55
+            )
+            if best_sell.confidence >= min_confidence_threshold and (enough_consensus or selective_override):
                 confidence = min(1.0, best_sell.confidence + (sell_consensus * 0.2))
                 signal = Signal.STRONG_SELL if confidence > 0.7 else Signal.SELL
 
@@ -255,6 +270,7 @@ class EnsembleStrategy(BaseStrategy):
                         "sub_signals": all_metadata,
                         "best_strategy": best_sell.strategy_name,
                         "sell_consensus": sell_consensus,
+                        "sell_signal_count": len(sell_signals),
                         "regime": current_regime.value if current_regime else "unknown",
                     },
                 )

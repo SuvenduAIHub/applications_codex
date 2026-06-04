@@ -181,7 +181,7 @@ class PositionSizer:
 
         # Apply maximum position limit — cap each position at 30% of portfolio
         # so multiple assets can trade simultaneously without hitting exposure limits
-        max_per_position_pct = 30.0
+        max_per_position_pct = 10.0
         max_size = max_position_usd or (
             portfolio_value * max_per_position_pct / 100.0
         )
@@ -192,3 +192,4 @@ class PositionSizer:
         size = max(size, min_size) if size > 0 else 0.0
 
         return round(size, 2)
+

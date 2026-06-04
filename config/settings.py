@@ -107,8 +107,8 @@ class StrategyConfig:
 
     # --- RSI Mean Reversion ---
     rsi_period: int = 14             # RSI calculation period
-    rsi_overbought: float = 60.0     # RSI overbought threshold (sell signal) — aggressive for more trades
-    rsi_oversold: float = 40.0       # RSI oversold threshold (buy signal) — aggressive for more trades
+    rsi_overbought: float = 70.0     # RSI overbought threshold (sell signal) — aggressive for more trades
+    rsi_oversold: float = 30.0       # RSI oversold threshold (buy signal) — aggressive for more trades
 
     # --- Bollinger Bands ---
     bb_period: int = 20              # Bollinger Band period
@@ -128,24 +128,24 @@ class StrategyConfig:
 
     # Minimum number of confirming indicators to trigger a trade
     # Requires 2 strategies to agree — reduces whipsaw from weak/noisy signals
-    min_signal_confirmations: int = 2
+    min_signal_confirmations: int = 3
 
     # Cooldown period between trades (in candles)
     # 3 candles × 5 min = 15 min cooldown — prevents rapid flip-flopping
-    trade_cooldown_candles: int = 3
+    trade_cooldown_candles: int = 6
 
 
 @dataclass
 class RiskConfig:
     """Configuration for risk management."""
     # Maximum percentage of portfolio to risk per trade
-    max_risk_per_trade_pct: float = 2.0
+    max_risk_per_trade_pct: float = 0.75
 
     # Maximum total portfolio exposure percentage — high for active scalping
-    max_portfolio_exposure_pct: float = 80.0
+    max_portfolio_exposure_pct: float = 35.0
 
     # Maximum number of concurrent open positions
-    max_concurrent_positions: int = 6
+    max_concurrent_positions: int = 2
 
     # Maximum drawdown before system halts trading (percentage)
     max_drawdown_pct: float = 15.0
@@ -166,18 +166,18 @@ class RiskConfig:
     min_risk_reward_ratio: float = 1.5
 
     # Maximum daily loss limit (percentage of portfolio)
-    max_daily_loss_pct: float = 5.0
+    max_daily_loss_pct: float = 2.0
 
     # Maximum number of losing trades before cooldown
-    max_consecutive_losses: int = 7
+    max_consecutive_losses: int = 3
 
     # Cooldown period after max consecutive losses (in minutes)
-    loss_streak_cooldown_minutes: int = 30
+    loss_streak_cooldown_minutes: int = 120
 
     # Per-asset allocation limits (percentage of total portfolio) — high for active scalping
     asset_allocation_limits: Dict[str, float] = field(default_factory=lambda: {
-        "BTC/USDT": 90.0,   # Max 90% of portfolio in Bitcoin (scalping mode)
-        "XAU/USD": 90.0,    # Max 90% of portfolio in Gold (scalping mode)
+        "BTC/USDT": 40.0,
+        "XAU/USD": 40.0,
     })
 
 
@@ -325,3 +325,5 @@ def load_config() -> TradingSystemConfig:
     Reads BASE_CURRENCY and exchange API keys from environment variables.
     """
     return TradingSystemConfig()
+
+

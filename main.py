@@ -54,6 +54,7 @@ from src.strategies.momentum import MomentumCrossoverStrategy
 from src.strategies.volatility import VolatilityStrategy
 from src.strategies.correlation_macro import CorrelationMacroStrategy
 from src.strategies.grid_trading import GridTradingStrategy
+from src.strategies.quality_trend import QualityTrendStrategy
 from src.strategies.ml_strategy import XGBoostStrategy, LSTMStrategy
 from src.strategies.ensemble import EnsembleStrategy
 from src.execution.broker import SimulatedBroker
@@ -176,6 +177,7 @@ def run_backtest(config: TradingSystemConfig, visualize: bool = False) -> dict:
     volatility_strategy = VolatilityStrategy(strategy_config)
     macro_strategy = CorrelationMacroStrategy(strategy_config)
     grid_strategy = GridTradingStrategy(strategy_config)
+    quality_strategy = QualityTrendStrategy(strategy_config)
     xgb_strategy = XGBoostStrategy(strategy_config)
 
     # Train ML strategy on BTC data
@@ -190,7 +192,7 @@ def run_backtest(config: TradingSystemConfig, visualize: bool = False) -> dict:
         strategies=[
             trend_strategy, mean_rev_strategy, breakout_strategy,
             momentum_strategy, volatility_strategy, macro_strategy,
-            grid_strategy, xgb_strategy,
+            grid_strategy, quality_strategy, xgb_strategy,
         ],
         config=strategy_config,
         min_consensus=0.3,
@@ -232,6 +234,7 @@ def run_backtest(config: TradingSystemConfig, visualize: bool = False) -> dict:
         "volatility": VolatilityStrategy(strategy_config),
         "correlation_macro": CorrelationMacroStrategy(strategy_config),
         "grid_trading": GridTradingStrategy(strategy_config),
+        "quality_trend": QualityTrendStrategy(strategy_config),
         "ensemble": EnsembleStrategy(
             strategies=[
                 TrendFollowingStrategy(strategy_config),
@@ -241,6 +244,7 @@ def run_backtest(config: TradingSystemConfig, visualize: bool = False) -> dict:
                 VolatilityStrategy(strategy_config),
                 CorrelationMacroStrategy(strategy_config),
                 GridTradingStrategy(strategy_config),
+                QualityTrendStrategy(strategy_config),
             ],
             config=strategy_config,
         ),
@@ -312,6 +316,7 @@ def run_paper_trading(config: TradingSystemConfig):
             VolatilityStrategy(strategy_config),
             CorrelationMacroStrategy(strategy_config),
             GridTradingStrategy(strategy_config),
+            QualityTrendStrategy(strategy_config),
         ],
         config=strategy_config,
     )
@@ -429,6 +434,8 @@ def run_paper_trading(config: TradingSystemConfig):
                                 f"SELL (CLOSE LONG): {symbol} @ ${current_price:,.2f} "
                                 f"| PnL=${result['pnl']:,.2f} ({result['pnl_pct']:.2f}%)"
                             )
+                        logger.info(f"Closed LONG for {symbol}; waiting for a fresh candle before opening SHORT")
+                        continue
                         # Now open short position
                         size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
@@ -469,6 +476,8 @@ def run_paper_trading(config: TradingSystemConfig):
                                 f"BUY (CLOSE SHORT): {symbol} @ ${current_price:,.2f} "
                                 f"| PnL=${result['pnl']:,.2f} ({result['pnl_pct']:.2f}%)"
                             )
+                        logger.info(f"Closed SHORT for {symbol}; waiting for a fresh candle before opening LONG")
+                        continue
                         # Now open long position
                         size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
@@ -499,7 +508,7 @@ def run_paper_trading(config: TradingSystemConfig):
                             )
 
                     # Case 3: SELL signal + no position → open short directly
-                    elif signal.is_sell and not has_position:
+                    elif signal.is_sell and not has_position and signal.confidence >= 0.62:
                         size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
@@ -533,7 +542,7 @@ def run_paper_trading(config: TradingSystemConfig):
                             logger.info(f"Trade blocked: {reason}")
 
                     # Case 4: BUY signal + no position → open long directly
-                    elif signal.is_buy and not has_position:
+                    elif signal.is_buy and not has_position and signal.confidence >= 0.62:
                         size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
@@ -766,6 +775,7 @@ def run_live_trading(config: TradingSystemConfig, exchange: str = "auto"):
             VolatilityStrategy(strategy_config),
             CorrelationMacroStrategy(strategy_config),
             GridTradingStrategy(strategy_config),
+            QualityTrendStrategy(strategy_config),
         ],
         config=strategy_config,
     )
