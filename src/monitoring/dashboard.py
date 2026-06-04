@@ -158,6 +158,53 @@ DASHBOARD_TEMPLATE = """
         .chart-info { display: flex; gap: 20px; padding: 8px 15px; background: var(--bg-chart); border: 1px solid var(--border-color); border-bottom: none; border-radius: 10px 10px 0 0; font-size: 12px; color: var(--text-secondary); transition: background 0.3s; }
         .chart-info .price { font-size: 18px; font-weight: bold; color: var(--text-primary); }
         .chart-info .change { font-size: 13px; }
+        .tv-terminal { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        body.dark .tv-terminal { background: var(--bg-card); box-shadow: none; }
+        .tv-topbar { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 8px 10px; background: #eef6fc; border-bottom: 1px solid #cbd5e1; }
+        body.dark .tv-topbar { background: #1e293b; border-color: #334155; }
+        .tv-symbol-tabs, .tv-actions, .tv-toolbar { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .tv-symbol-tab { border: 1px solid #f59e0b; color: #f97316; background: #fff7ed; border-radius: 4px; padding: 6px 13px; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .tv-symbol-tab.gold { border-color: #facc15; color: #0369a1; background: #eff6ff; }
+        .tv-symbol-tab.active { background: #0ea5e9; color: #fff; border-color: #0284c7; }
+        .tv-action-btn { border: 0; border-radius: 5px; color: #fff; padding: 7px 10px; font-size: 12px; font-weight: 800; cursor: pointer; }
+        .tv-action-btn.buy { background: #14b8a6; }
+        .tv-action-btn.sell { background: #ef4444; }
+        .tv-action-btn.dark { background: #1f2937; }
+        .tv-action-btn.blue { background: #0b7ce6; }
+        .tv-select { height: 31px; border: 0; border-radius: 5px; background: #1f2937; color: #fff; padding: 0 10px; font-size: 12px; font-weight: 800; }
+        .tv-toolbar { padding: 7px 10px; background: #fff; border-bottom: 1px solid #e2e8f0; color: #111827; }
+        body.dark .tv-toolbar { background: #111827; border-color: #334155; color: #d1d5db; }
+        .tv-search { display: flex; align-items: center; gap: 6px; min-width: 110px; font-weight: 800; font-size: 13px; }
+        .tv-timeframe { border: 0; background: transparent; color: inherit; padding: 4px 5px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+        .tv-timeframe.active { background: #e5e7eb; }
+        body.dark .tv-timeframe.active { background: #374151; }
+        .tv-tool { border: 0; background: transparent; color: inherit; padding: 4px 6px; border-radius: 4px; cursor: pointer; font-weight: 700; }
+        .tv-workspace { display: grid; grid-template-columns: 38px minmax(0, 1fr) 190px; min-height: 560px; }
+        .tv-left-tools { border-right: 1px solid #e2e8f0; background: #f8fafc; display: flex; flex-direction: column; align-items: center; gap: 9px; padding-top: 10px; }
+        body.dark .tv-left-tools { background: #0f172a; border-color: #334155; }
+        .tv-left-tools button { width: 26px; height: 26px; border: 0; border-radius: 4px; background: transparent; color: var(--text-primary); cursor: pointer; font-size: 15px; }
+        .tv-left-tools button:hover { background: #e5e7eb; }
+        body.dark .tv-left-tools button:hover { background: #334155; }
+        .tv-chart-pane { min-width: 0; }
+        .tv-indicator-strip { position: absolute; top: 8px; left: 12px; z-index: 3; font-size: 11px; line-height: 1.7; color: #111827; background: rgba(255,255,255,0.72); padding: 3px 6px; border-radius: 4px; pointer-events: none; }
+        body.dark .tv-indicator-strip { color: #e5e7eb; background: rgba(15,23,42,0.72); }
+        .tv-chart-wrap { position: relative; }
+        .tv-side-panel { border-left: 1px solid #e2e8f0; background: #fff; padding: 12px; font-size: 12px; }
+        body.dark .tv-side-panel { background: #111827; border-color: #334155; }
+        .tv-side-panel h3 { font-size: 13px; color: var(--text-primary); margin-bottom: 14px; }
+        .tv-side-symbol { font-weight: 800; margin-bottom: 8px; }
+        .tv-side-price { font-size: 25px; color: #dc2626; font-weight: 800; margin: 14px 0 4px; }
+        .tv-market-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10b981; margin-right: 6px; }
+        .tv-rsi-pane { border-top: 1px solid #e2e8f0; }
+        body.dark .tv-rsi-pane { border-color: #334155; }
+        .tv-maximized { position: fixed; inset: 8px; z-index: 9999; border-radius: 8px; }
+        .tv-maximized .tv-workspace { min-height: calc(100vh - 93px); }
+        .tv-maximized #chart-container { height: calc(100vh - 250px) !important; }
+        @media (max-width: 900px) {
+            .tv-workspace { grid-template-columns: 32px minmax(0, 1fr); }
+            .tv-side-panel { display: none; }
+            .tv-topbar { align-items: flex-start; flex-direction: column; }
+        }
 
         /* Card shadow for light theme */
         .card { box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
@@ -238,28 +285,66 @@ DASHBOARD_TEMPLATE = """
         </div>
 
         <!-- TradingView Chart Section — moved to bottom for better workflow -->
-        <div class="chart-section" style="margin-top: 15px;">
-            <div class="chart-header">
-                <div class="chart-tabs">
-                    <div class="chart-tab btc active" onclick="switchChart('BTC/USDT')">BTC/USDT</div>
-                    <div class="chart-tab gold" onclick="switchChart('XAU/USD')">XAU/USD</div>
+        <div class="chart-section tv-terminal" id="tv-terminal" style="margin-top: 15px;">
+            <div class="tv-topbar">
+                <div class="tv-symbol-tabs">
+                    <button class="tv-symbol-tab btc active" onclick="switchChart('BTC/USDT')">BTC/USDT</button>
+                    <button class="tv-symbol-tab gold" onclick="switchChart('XAU/USD')">XAU/USD</button>
                 </div>
-                <div class="chart-legend">
-                    <div class="legend-item"><div class="legend-dot" style="background:#2962FF"></div>BB Upper</div>
-                    <div class="legend-item"><div class="legend-dot" style="background:#FF6D00"></div>BB Middle</div>
-                    <div class="legend-item"><div class="legend-dot" style="background:#2962FF"></div>BB Lower</div>
-                    <div class="legend-item"><div class="legend-dot" style="background:#00E676"></div>EMA 12</div>
-                    <div class="legend-item"><div class="legend-dot" style="background:#FF9800"></div>EMA 26</div>
-                    <div class="legend-item"><div class="legend-dot" style="background:#26a69a;height:8px;width:8px;border-radius:50%"></div>Buy</div>
-                    <div class="legend-item"><div class="legend-dot" style="background:#ef5350;height:8px;width:8px;border-radius:50%"></div>Sell</div>
+                <div class="tv-actions">
+                    <select class="tv-select" id="tv-symbol-select" onchange="switchChart(this.value)">
+                        <option value="BTC/USDT">BTC</option>
+                        <option value="XAU/USD">Gold</option>
+                    </select>
+                    <button class="tv-action-btn buy" onclick="executeChartOrder('buy')">TV Buy</button>
+                    <button class="tv-action-btn sell" onclick="executeChartOrder('sell')">TV Sell</button>
+                    <button class="tv-action-btn dark" onclick="clearChartMarkers()">Clear TV</button>
+                    <button class="tv-action-btn blue" onclick="toggleChartMaximize()">Maximize</button>
                 </div>
-                <button class="btn" onclick="refreshChart()">Refresh Chart</button>
             </div>
-            <div class="chart-info" id="chart-info">
-                <div><span id="chart-symbol">BTC/USDT</span> <span class="price" id="chart-price">--</span> <span class="change" id="chart-change">--</span></div>
+            <div class="tv-toolbar">
+                <div class="tv-search">Search <span id="chart-symbol">BTC/USDT</span></div>
+                <button class="tv-tool" onclick="refreshChart()">+</button>
+                <button class="tv-timeframe" onclick="setTimeframe(this)">1m</button>
+                <button class="tv-timeframe" onclick="setTimeframe(this)">30m</button>
+                <button class="tv-timeframe" onclick="setTimeframe(this)">1h</button>
+                <button class="tv-timeframe active" onclick="setTimeframe(this)">5m</button>
+                <button class="tv-tool" onclick="refreshChart()">Refresh</button>
+                <button class="tv-tool" onclick="toggleIndicators()">Indicators</button>
+                <span id="chart-change" class="change">--</span>
             </div>
-            <div id="chart-container" style="height: 400px;"></div>
-            <div id="rsi-container" style="height: 120px;"></div>
+            <div class="tv-workspace">
+                <div class="tv-left-tools">
+                    <button title="Crosshair">+</button>
+                    <button title="Trend line">/</button>
+                    <button title="Horizontal line">--</button>
+                    <button title="Brush">~</button>
+                    <button title="Measure">[]</button>
+                    <button title="Settings">..</button>
+                </div>
+                <div class="tv-chart-pane">
+                    <div class="tv-chart-wrap">
+                        <div class="tv-indicator-strip" id="tv-indicators">
+                            <div><strong id="tv-title">Bitcoin / TetherUS - 5 - Paper</strong></div>
+                            <div>EMA 9 close <span id="tv-ema-fast" class="positive">--</span></div>
+                            <div>BB 20 close 2 <span id="tv-bb-values">--</span></div>
+                            <div>Vol - BTC <span id="tv-volume">--</span></div>
+                        </div>
+                        <div id="chart-container" style="height: 430px;"></div>
+                    </div>
+                    <div class="tv-rsi-pane" id="rsi-container" style="height: 120px;"></div>
+                </div>
+                <div class="tv-side-panel">
+                    <h3 id="tv-panel-symbol">BTCUSDT</h3>
+                    <div class="tv-side-symbol" id="tv-panel-name">Bitcoin / TetherUS</div>
+                    <div>BINANCE</div>
+                    <div>Spot - Crypto</div>
+                    <div class="tv-side-price" id="chart-price">--</div>
+                    <div id="tv-panel-change" class="negative">--</div>
+                    <div style="margin-top: 12px;"><span class="tv-market-dot"></span>Market open</div>
+                    <div style="margin-top: 14px; color: var(--text-secondary);">Paper chart powered by app candles</div>
+                </div>
+            </div>
         </div>
 
         <div id="last-update">Last updated: --</div>
@@ -349,6 +434,7 @@ DASHBOARD_TEMPLATE = """
         let emaSlowSeries = null;
         let buyMarkers = [];
         let sellMarkers = [];
+        let activePriceLines = [];
 
         // ========== INIT CHARTS ==========
         function initCharts() {
@@ -359,7 +445,7 @@ DASHBOARD_TEMPLATE = """
             // Main candlestick chart — theme-aware colors
             mainChart = LightweightCharts.createChart(chartEl, {
                 width: chartEl.clientWidth,
-                height: 400,
+                height: chartEl.clientHeight || 430,
                 layout: { background: { color: c.bg }, textColor: c.text },
                 grid: { vertLines: { color: c.grid }, horzLines: { color: c.grid } },
                 crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
@@ -392,7 +478,7 @@ DASHBOARD_TEMPLATE = """
             // RSI sub-chart — theme-aware colors
             rsiChart = LightweightCharts.createChart(rsiEl, {
                 width: rsiEl.clientWidth,
-                height: 120,
+                height: rsiEl.clientHeight || 120,
                 layout: { background: { color: c.bg }, textColor: c.text },
                 grid: { vertLines: { color: c.grid }, horzLines: { color: c.grid } },
                 rightPriceScale: { borderColor: c.border },
@@ -414,8 +500,7 @@ DASHBOARD_TEMPLATE = """
 
             // Responsive resize
             window.addEventListener('resize', () => {
-                mainChart.applyOptions({ width: chartEl.clientWidth });
-                rsiChart.applyOptions({ width: rsiEl.clientWidth });
+                resizeCharts();
             });
 
             // Load initial chart data
@@ -425,11 +510,61 @@ DASHBOARD_TEMPLATE = """
         // ========== SWITCH SYMBOL ==========
         function switchChart(symbol) {
             currentSymbol = symbol;
-            document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
-            if (symbol === 'BTC/USDT') document.querySelector('.chart-tab.btc').classList.add('active');
-            else document.querySelector('.chart-tab.gold').classList.add('active');
+            document.querySelectorAll('.tv-symbol-tab').forEach(t => t.classList.remove('active'));
+            if (symbol === 'BTC/USDT') document.querySelector('.tv-symbol-tab.btc').classList.add('active');
+            else document.querySelector('.tv-symbol-tab.gold').classList.add('active');
+            document.getElementById('tv-symbol-select').value = symbol;
             document.getElementById('chart-symbol').textContent = symbol;
             refreshChart();
+        }
+
+        function resizeCharts() {
+            const chartEl = document.getElementById('chart-container');
+            const rsiEl = document.getElementById('rsi-container');
+            if (mainChart) mainChart.applyOptions({ width: chartEl.clientWidth, height: chartEl.clientHeight || 430 });
+            if (rsiChart) rsiChart.applyOptions({ width: rsiEl.clientWidth, height: rsiEl.clientHeight || 120 });
+        }
+
+        function setTimeframe(btn) {
+            document.querySelectorAll('.tv-timeframe').forEach(t => t.classList.remove('active'));
+            btn.classList.add('active');
+            refreshChart();
+        }
+
+        function toggleIndicators() {
+            const strip = document.getElementById('tv-indicators');
+            strip.style.display = strip.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function clearChartMarkers() {
+            buyMarkers = [];
+            sellMarkers = [];
+            if (candleSeries) candleSeries.setMarkers([]);
+            showActionMessage('Chart markers cleared locally.');
+        }
+
+        function toggleChartMaximize() {
+            document.getElementById('tv-terminal').classList.toggle('tv-maximized');
+            setTimeout(resizeCharts, 50);
+        }
+
+        function executeChartOrder(side) {
+            const leverageEl = document.getElementById('manual-leverage');
+            const allocationEl = document.getElementById('manual-allocation');
+            const payload = {
+                symbol: currentSymbol,
+                side,
+                order_type: 'market',
+                leverage: Number(leverageEl ? leverageEl.value : 1),
+                allocation_pct: Number(allocationEl ? allocationEl.value : 10),
+            };
+            postAction('/api/manual-order', payload)
+                .then(data => {
+                    showActionMessage(`TV ${side.toUpperCase()} executed for ${data.symbol} at ${CUR_SYM}${data.price.toFixed(2)}.`);
+                    refreshData();
+                    refreshChart();
+                })
+                .catch(err => showActionMessage(err.message, true));
         }
 
         // ========== LOAD CHART DATA ==========
@@ -493,17 +628,18 @@ DASHBOARD_TEMPLATE = """
             candleSeries.setMarkers(markers);
 
             // Position lines (entry, stop-loss, take-profit) for open positions
+            activePriceLines.forEach(line => candleSeries.removePriceLine(line));
+            activePriceLines = [];
             if (data.position) {
                 const pos = data.position;
-                // Clear previous price lines by setting data again
                 if (pos.entry_price) {
-                    candleSeries.createPriceLine({ price: pos.entry_price, color: '#2196F3', lineWidth: 2, lineStyle: 0, title: 'Entry' });
+                    activePriceLines.push(candleSeries.createPriceLine({ price: pos.entry_price, color: '#2196F3', lineWidth: 2, lineStyle: 0, title: 'Entry' }));
                 }
                 if (pos.stop_loss) {
-                    candleSeries.createPriceLine({ price: pos.stop_loss, color: '#ef5350', lineWidth: 1, lineStyle: 2, title: 'Stop Loss' });
+                    activePriceLines.push(candleSeries.createPriceLine({ price: pos.stop_loss, color: '#ef5350', lineWidth: 1, lineStyle: 2, title: 'Stop Loss' }));
                 }
                 if (pos.take_profit) {
-                    candleSeries.createPriceLine({ price: pos.take_profit, color: '#26a69a', lineWidth: 1, lineStyle: 2, title: 'Take Profit' });
+                    activePriceLines.push(candleSeries.createPriceLine({ price: pos.take_profit, color: '#26a69a', lineWidth: 1, lineStyle: 2, title: 'Take Profit' }));
                 }
             }
 
@@ -516,6 +652,17 @@ DASHBOARD_TEMPLATE = """
             const changeEl = document.getElementById('chart-change');
             changeEl.textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePct.toFixed(2)}%)`;
             changeEl.className = `change ${change >= 0 ? 'positive' : 'negative'}`;
+            const symbolMeta = currentSymbol === 'BTC/USDT'
+                ? { title: 'Bitcoin / TetherUS - 5 - Paper', panel: 'BTCUSDT', name: 'Bitcoin / TetherUS', volume: 'BTC' }
+                : { title: 'Gold Spot / U.S. Dollar - 5 - Paper', panel: 'XAUUSD', name: 'Gold Spot / U.S. Dollar', volume: 'XAU' };
+            document.getElementById('tv-title').textContent = symbolMeta.title;
+            document.getElementById('tv-panel-symbol').textContent = symbolMeta.panel;
+            document.getElementById('tv-panel-name').textContent = symbolMeta.name;
+            document.getElementById('tv-panel-change').textContent = `${change >= 0 ? '+' : ''}${change.toFixed(2)} ${change >= 0 ? '+' : ''}${changePct.toFixed(2)}%`;
+            document.getElementById('tv-panel-change').className = change >= 0 ? 'positive' : 'negative';
+            document.getElementById('tv-ema-fast').textContent = last.ema_fast ? last.ema_fast.toFixed(2) : '--';
+            document.getElementById('tv-bb-values').textContent = last.bb_upper ? `${last.bb_upper.toFixed(2)} ${last.bb_middle.toFixed(2)} ${last.bb_lower.toFixed(2)}` : '--';
+            document.getElementById('tv-volume').textContent = `${symbolMeta.volume} ${Number(last.volume || 0).toLocaleString(LOCALE, {maximumFractionDigits: 2})}`;
 
             // Auto-fit chart to show all data
             mainChart.timeScale().fitContent();
