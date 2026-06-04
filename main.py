@@ -331,7 +331,7 @@ def run_paper_trading(config: TradingSystemConfig):
     dashboard.set_components(
         portfolio, risk_manager, ensemble, "paper",
         currency_converter=converter, base_currency=base_currency,
-        exchange_name="paper",
+        exchange_name="paper", leverage=config.execution.leverage,
     )
     dashboard.start(threaded=True)
     logger.info(f"Dashboard running at http://localhost:{config.monitoring.dashboard_port}")
@@ -352,9 +352,7 @@ def run_paper_trading(config: TradingSystemConfig):
             for symbol, feed in [("BTC/USDT", btc_feed), ("XAU/USD", gold_feed)]:
                 try:
                     # Skip this symbol if its market is closed
-                    if not is_market_open(symbol):
-                        logger.info(f"{symbol} market is CLOSED — skipping (no trades placed)")
-                        continue
+                    market_open = is_market_open(symbol)
 
                     # Get recent candles for indicator calculation
                     # Use M5 (5-minute) candles for intraday scalping — generates signals
@@ -374,6 +372,10 @@ def run_paper_trading(config: TradingSystemConfig):
 
                     # Feed enriched candle data to dashboard for TradingView chart
                     dashboard.update_candle_data(symbol, enriched)
+
+                    if not market_open:
+                        logger.info(f"{symbol} market is CLOSED — price/dashboard updated, skipping new trades")
+                        continue
 
                     # Process pending orders
                     filled = broker.process_tick(
@@ -437,13 +439,14 @@ def run_paper_trading(config: TradingSystemConfig):
                         logger.info(f"Closed LONG for {symbol}; waiting for a fresh candle before opening SHORT")
                         continue
                         # Now open short position
-                        size_usd = risk_manager.position_sizer.calculate_position_size(
+                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
                             current_price=current_price,
                             atr=atr,
                         )
-                        can_trade, reason = risk_manager.can_trade(symbol, "sell", size_usd)
+                        size_usd = base_size_usd * config.execution.leverage
+                        can_trade, reason = risk_manager.can_trade(symbol, "sell", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
                             portfolio.open_position(
@@ -453,7 +456,7 @@ def run_paper_trading(config: TradingSystemConfig):
                                 take_profit=signal.take_profit,
                             )
                             risk_manager.register_position(
-                                symbol=symbol, side="sell", size_usd=size_usd,
+                                symbol=symbol, side="sell", size_usd=base_size_usd,
                                 entry_price=current_price,
                                 stop_loss=signal.stop_loss or (current_price + 2.5 * atr),
                                 take_profit=signal.take_profit or (current_price - 4 * atr),
@@ -462,7 +465,8 @@ def run_paper_trading(config: TradingSystemConfig):
                             tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
                             logger.info(
                                 f"SHORT OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
-                                f"= ${size_usd:,.2f} | SL={sl_str} TP={tp_str}"
+                                f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
+                                f"| leverage={config.execution.leverage}x | SL={sl_str} TP={tp_str}"
                             )
 
                     # Case 2: BUY signal + currently SHORT → close short, open long
@@ -479,13 +483,14 @@ def run_paper_trading(config: TradingSystemConfig):
                         logger.info(f"Closed SHORT for {symbol}; waiting for a fresh candle before opening LONG")
                         continue
                         # Now open long position
-                        size_usd = risk_manager.position_sizer.calculate_position_size(
+                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
                             current_price=current_price,
                             atr=atr,
                         )
-                        can_trade, reason = risk_manager.can_trade(symbol, "buy", size_usd)
+                        size_usd = base_size_usd * config.execution.leverage
+                        can_trade, reason = risk_manager.can_trade(symbol, "buy", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
                             portfolio.open_position(
@@ -495,7 +500,7 @@ def run_paper_trading(config: TradingSystemConfig):
                                 take_profit=signal.take_profit,
                             )
                             risk_manager.register_position(
-                                symbol=symbol, side="buy", size_usd=size_usd,
+                                symbol=symbol, side="buy", size_usd=base_size_usd,
                                 entry_price=current_price,
                                 stop_loss=signal.stop_loss or (current_price - 2.5 * atr),
                                 take_profit=signal.take_profit or (current_price + 4 * atr),
@@ -504,18 +509,20 @@ def run_paper_trading(config: TradingSystemConfig):
                             tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
                             logger.info(
                                 f"LONG OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
-                                f"= ${size_usd:,.2f} | SL={sl_str} TP={tp_str}"
+                                f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
+                                f"| leverage={config.execution.leverage}x | SL={sl_str} TP={tp_str}"
                             )
 
                     # Case 3: SELL signal + no position → open short directly
                     elif signal.is_sell and not has_position and signal.confidence >= 0.62:
-                        size_usd = risk_manager.position_sizer.calculate_position_size(
+                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
                             current_price=current_price,
                             atr=atr,
                         )
-                        can_trade, reason = risk_manager.can_trade(symbol, "sell", size_usd)
+                        size_usd = base_size_usd * config.execution.leverage
+                        can_trade, reason = risk_manager.can_trade(symbol, "sell", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
                             portfolio.open_position(
@@ -525,7 +532,7 @@ def run_paper_trading(config: TradingSystemConfig):
                                 take_profit=signal.take_profit,
                             )
                             risk_manager.register_position(
-                                symbol=symbol, side="sell", size_usd=size_usd,
+                                symbol=symbol, side="sell", size_usd=base_size_usd,
                                 entry_price=current_price,
                                 stop_loss=signal.stop_loss or (current_price + 2.5 * atr),
                                 take_profit=signal.take_profit or (current_price - 4 * atr),
@@ -536,20 +543,22 @@ def run_paper_trading(config: TradingSystemConfig):
                             tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
                             logger.info(
                                 f"SHORT OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
-                                f"= ${size_usd:,.2f} | SL={sl_str} TP={tp_str}"
+                                f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
+                                f"| leverage={config.execution.leverage}x | SL={sl_str} TP={tp_str}"
                             )
                         else:
                             logger.info(f"Trade blocked: {reason}")
 
                     # Case 4: BUY signal + no position → open long directly
                     elif signal.is_buy and not has_position and signal.confidence >= 0.62:
-                        size_usd = risk_manager.position_sizer.calculate_position_size(
+                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
                             current_price=current_price,
                             atr=atr,
                         )
-                        can_trade, reason = risk_manager.can_trade(symbol, "buy", size_usd)
+                        size_usd = base_size_usd * config.execution.leverage
+                        can_trade, reason = risk_manager.can_trade(symbol, "buy", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
                             portfolio.open_position(
@@ -559,7 +568,7 @@ def run_paper_trading(config: TradingSystemConfig):
                                 take_profit=signal.take_profit,
                             )
                             risk_manager.register_position(
-                                symbol=symbol, side="buy", size_usd=size_usd,
+                                symbol=symbol, side="buy", size_usd=base_size_usd,
                                 entry_price=current_price,
                                 stop_loss=signal.stop_loss or (current_price - 2.5 * atr),
                                 take_profit=signal.take_profit or (current_price + 4 * atr),
@@ -570,7 +579,8 @@ def run_paper_trading(config: TradingSystemConfig):
                             tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
                             logger.info(
                                 f"LONG OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
-                                f"= ${size_usd:,.2f} | SL={sl_str} TP={tp_str}"
+                                f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
+                                f"| leverage={config.execution.leverage}x | SL={sl_str} TP={tp_str}"
                             )
                         else:
                             logger.info(f"Trade blocked: {reason}")
@@ -810,9 +820,7 @@ def run_live_trading(config: TradingSystemConfig, exchange: str = "auto"):
             for symbol, feed in [("BTC/USDT", btc_feed), ("XAU/USD", gold_feed)]:
                 try:
                     # Skip this symbol if its market is closed
-                    if not is_market_open(symbol):
-                        logger.info(f"{symbol} market is CLOSED — skipping (no trades placed)")
-                        continue
+                    market_open = is_market_open(symbol)
 
                     df = feed.fetch_historical(timeframe=TimeFrame.M5, limit=200)
                     if df.empty:
@@ -826,6 +834,10 @@ def run_live_trading(config: TradingSystemConfig, exchange: str = "auto"):
 
                     # Feed enriched candle data to dashboard for TradingView chart
                     dashboard.update_candle_data(symbol, enriched)
+
+                    if not market_open:
+                        logger.info(f"{symbol} market is CLOSED — price/dashboard updated, skipping new trades")
+                        continue
 
                     # Log price in both currencies
                     inr_price = converter.convert(current_price, "USD", "INR")
@@ -1029,6 +1041,10 @@ Examples:
         help="Dashboard web server port (default: 5000)",
     )
     parser.add_argument(
+        "--leverage", type=int, default=None,
+        help="Leverage multiplier for paper/live position notional (default: LEVERAGE env or 1)",
+    )
+    parser.add_argument(
         "--log-level", type=str, default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         help="Logging level (default: INFO)",
@@ -1047,6 +1063,8 @@ Examples:
     config = load_config()
     config.backtest.initial_balance_usd = args.balance
     config.monitoring.dashboard_port = args.dashboard_port
+    if args.leverage is not None:
+        config.execution.leverage = max(1, args.leverage)
 
     # Set base currency from CLI argument
     from config.settings import BaseCurrency
@@ -1059,6 +1077,7 @@ Examples:
     logger.info(f"Trading pairs: BTC/USDT, XAU/USD")
     logger.info(f"Base currency: {args.currency}")
     logger.info(f"Initial balance: {currency_symbol}{args.balance:,.2f}")
+    logger.info(f"Leverage: {config.execution.leverage}x")
 
     if args.mode == "backtest":
         config.mode = TradingMode.BACKTEST

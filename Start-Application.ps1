@@ -6,6 +6,8 @@ param(
 
     [int]$DashboardPort = 5000,
 
+    [int]$Leverage = 1,
+
     [string]$Currency = "USD",
 
     [switch]$Visualize,
@@ -120,7 +122,8 @@ $ArgsList = @(
     "--mode", $Mode,
     "--balance", $Balance,
     "--currency", $Currency,
-    "--dashboard-port", $DashboardPort
+    "--dashboard-port", $DashboardPort,
+    "--leverage", $Leverage
 )
 
 if ($Mode -eq "backtest" -and $Visualize) {
