@@ -289,6 +289,10 @@ class Portfolio:
                     "current": p.current_price,
                     "pnl": p.unrealized_pnl,
                     "pnl_pct": p.pnl_pct,
+                    "stop_loss": p.stop_loss,
+                    "take_profit": p.take_profit,
+                    "entry_time": p.opened_at.isoformat() if p.opened_at else None,
+                    "source": getattr(p, "source", "Auto"),
                 }
                 for s, p in self.positions.items()
             },

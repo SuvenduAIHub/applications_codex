@@ -55,6 +55,7 @@ class RiskManager:
         # Circuit breaker flag - halts all trading when True
         self.trading_halted: bool = False
         self.halt_reason: Optional[str] = None
+        self.symbol_halts: Dict[str, str] = {}
 
     def initialize(self, portfolio_value: float) -> None:
         """
@@ -96,6 +97,9 @@ class RiskManager:
         # Check circuit breaker
         if self.trading_halted:
             return False, f"Trading halted: {self.halt_reason}"
+
+        if symbol in self.symbol_halts:
+            return False, f"{symbol} halted: {self.symbol_halts[symbol]}"
 
         # Check daily loss limit
         daily_loss_pct = abs(self.daily_pnl / self.daily_start_value * 100) if self.daily_start_value > 0 else 0
@@ -444,7 +448,23 @@ class RiskManager:
             "consecutive_losses": self.consecutive_losses,
             "trading_halted": self.trading_halted,
             "halt_reason": self.halt_reason,
+            "symbol_halts": self.symbol_halts,
         }
+
+    def halt_symbol(self, symbol: str, reason: str = "Manual symbol halt") -> None:
+        """Prevent new trades for one symbol while keeping the rest of the system active."""
+        self.symbol_halts[symbol] = reason
+        logger.warning(f"Trading halted for {symbol}: {reason}")
+
+    def resume_symbol(self, symbol: str) -> None:
+        """Allow trading again for one manually halted symbol."""
+        if symbol in self.symbol_halts:
+            del self.symbol_halts[symbol]
+            logger.info(f"Trading resumed for {symbol}")
+
+    def is_symbol_halted(self, symbol: str) -> bool:
+        """Return whether new trades are blocked for a symbol."""
+        return symbol in self.symbol_halts
 
     def _calculate_drawdown(self) -> float:
         """Calculate current drawdown from peak as a percentage."""
@@ -477,3 +497,4 @@ class RiskManager:
         self.daily_trades = []
         self.trading_halted = False
         self.halt_reason = None
+        self.symbol_halts = {}

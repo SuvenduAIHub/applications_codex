@@ -109,6 +109,21 @@ DASHBOARD_TEMPLATE = """
         .btn-danger:hover { background: #b91c1c; }
         .btn-success { background: #16a34a; }
         .btn-success:hover { background: #15803d; }
+        .action-bar { display: grid; grid-template-columns: auto minmax(150px, 1fr) minmax(150px, 1fr) repeat(3, auto) repeat(5, minmax(78px, auto)) auto; gap: 7px; align-items: center; margin-bottom: 10px; }
+        .price-pill { border-radius: 8px; padding: 9px 12px; font-weight: 800; text-align: center; white-space: nowrap; font-size: 13px; }
+        .price-pill.btc { background: #f97316; color: #fff; }
+        .price-pill.gold { background: #facc15; color: #111827; }
+        .price-change { display: inline-block; background: #047857; color: #fff; border-radius: 4px; padding: 1px 5px; margin-left: 8px; font-size: 10px; }
+        .trade-select { height: 36px; border: 1px solid var(--border-color); border-radius: 6px; background: #1f2937; color: #fff; padding: 0 8px; font-weight: 700; min-width: 78px; }
+        .row-action { border: 0; border-radius: 5px; padding: 5px 10px; color: #fff; font-weight: 800; cursor: pointer; font-size: 12px; }
+        .row-action.close { background: #ff2f5f; }
+        .row-action.edit { background: #f59e0b; padding: 2px 5px; font-size: 10px; }
+        .source-badge { background: #10b981; color: #fff; border-radius: 4px; padding: 3px 7px; font-size: 11px; font-weight: 800; }
+        .message { min-height: 20px; margin-bottom: 8px; color: var(--text-secondary); font-size: 12px; font-weight: 700; }
+        @media (max-width: 1000px) {
+            .action-bar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .trade-select, .action-bar .btn, .price-pill { width: 100%; }
+        }
 
         /* Pagination styles */
         .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
@@ -162,7 +177,21 @@ DASHBOARD_TEMPLATE = """
     </div>
     <div class="container">
         <!-- Data cards at top — Portfolio, Risk, System Status -->
-        <button class="btn" onclick="refreshData()" style="margin-bottom:10px">Refresh Data</button>
+        <div class="action-bar">
+            <button class="btn" onclick="refreshData()">Refresh</button>
+            <div class="price-pill btc" id="btc-price-pill">BTC: -- <span class="price-change">--</span></div>
+            <div class="price-pill gold" id="gold-price-pill">GOLD: -- <span class="price-change">--</span></div>
+            <button class="btn btn-danger" onclick="stopAll()">Stop All</button>
+            <button class="btn btn-danger" onclick="stopSymbol('BTC/USDT')">Stop BTC</button>
+            <button class="btn btn-danger" onclick="stopSymbol('XAU/USD')">Stop Gold</button>
+            <select class="trade-select" id="manual-symbol"><option value="BTC/USDT">BTC</option><option value="XAU/USD">Gold</option></select>
+            <select class="trade-select" id="manual-side"><option value="buy">Buy</option><option value="sell">Sell</option></select>
+            <select class="trade-select" id="manual-order-type"><option value="market">Market</option></select>
+            <select class="trade-select" id="manual-leverage"><option value="1">Lev 1x</option><option value="10">10x</option><option value="25">25x</option><option value="50">50x</option></select>
+            <select class="trade-select" id="manual-allocation"><option value="10">10%</option><option value="25">25%</option><option value="50" selected>50%</option><option value="100">100%</option></select>
+            <button class="btn btn-success" onclick="executeManualOrder()">Execute</button>
+        </div>
+        <div class="message" id="action-message"></div>
         <div class="grid" id="metrics-grid">
             <div class="card">
                 <h2>Portfolio</h2>
@@ -180,8 +209,8 @@ DASHBOARD_TEMPLATE = """
         <div class="card">
             <h2>Open Positions</h2>
             <table>
-                <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry</th><th>Current</th><th>PnL</th><th>PnL %</th></tr></thead>
-                <tbody id="positions-table"><tr><td colspan="7">No open positions</td></tr></tbody>
+                <thead><tr><th>Symbol</th><th>Side</th><th>Qty</th><th>Entry Price</th><th>Entry Time</th><th>Current</th><th>PnL</th><th>PnL %</th><th>Stop Loss</th><th>Source</th><th>Action</th></tr></thead>
+                <tbody id="positions-table"><tr><td colspan="11">No open positions</td></tr></tbody>
             </table>
         </div>
         <div class="card" style="margin-top: 15px;">
@@ -501,10 +530,88 @@ DASHBOARD_TEMPLATE = """
                 .catch(err => console.error('Refresh failed:', err));
         }
 
+        function routeSymbol(symbol) {
+            return symbol.replace('/', '-');
+        }
+
+        function showActionMessage(message, isError = false) {
+            const el = document.getElementById('action-message');
+            el.textContent = message;
+            el.className = `message ${isError ? 'negative' : 'positive'}`;
+        }
+
+        function postAction(url, body = null) {
+            return fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: body ? JSON.stringify(body) : null,
+            }).then(async r => {
+                const data = await r.json();
+                if (!r.ok) throw new Error(data.error || 'Action failed');
+                return data;
+            });
+        }
+
+        function stopAll() {
+            postAction('/api/halt')
+                .then(() => { showActionMessage('All automated trading halted.'); refreshData(); })
+                .catch(err => showActionMessage(err.message, true));
+        }
+
+        function stopSymbol(symbol) {
+            postAction(`/api/halt-symbol/${routeSymbol(symbol)}`)
+                .then(() => { showActionMessage(`${symbol} automated entries halted.`); refreshData(); })
+                .catch(err => showActionMessage(err.message, true));
+        }
+
+        function executeManualOrder() {
+            const payload = {
+                symbol: document.getElementById('manual-symbol').value,
+                side: document.getElementById('manual-side').value,
+                order_type: document.getElementById('manual-order-type').value,
+                leverage: Number(document.getElementById('manual-leverage').value),
+                allocation_pct: Number(document.getElementById('manual-allocation').value),
+            };
+            postAction('/api/manual-order', payload)
+                .then(data => {
+                    showActionMessage(`Manual ${payload.side.toUpperCase()} executed for ${data.symbol} at ${CUR_SYM}${data.price.toFixed(2)}.`);
+                    refreshData();
+                    refreshChart();
+                })
+                .catch(err => showActionMessage(err.message, true));
+        }
+
+        function closePosition(symbol) {
+            if (!confirm(`Close ${symbol} position now?`)) return;
+            postAction(`/api/close-position/${routeSymbol(symbol)}`)
+                .then(() => { showActionMessage(`${symbol} position closed.`); refreshData(); refreshChart(); })
+                .catch(err => showActionMessage(err.message, true));
+        }
+
+        function editStop(symbol, currentStop) {
+            const value = prompt(`New stop loss for ${symbol}`, currentStop || '');
+            if (value === null) return;
+            const stopLoss = Number(value);
+            if (!Number.isFinite(stopLoss) || stopLoss <= 0) {
+                showActionMessage('Please enter a valid stop-loss price.', true);
+                return;
+            }
+            postAction(`/api/update-stop/${routeSymbol(symbol)}`, {stop_loss: stopLoss})
+                .then(() => { showActionMessage(`${symbol} stop loss updated.`); refreshData(); refreshChart(); })
+                .catch(err => showActionMessage(err.message, true));
+        }
+
+        function formatPrice(value) {
+            return Number(value || 0).toLocaleString(LOCALE, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+
         function updateDashboard(data) {
             const portfolio = data.portfolio || {};
             const inr = portfolio.inr || {};
             const rate = data.currency?.inr_usd_rate || 0;
+            const prices = data.prices || {};
+            document.getElementById('btc-price-pill').innerHTML = `BTC: ${CUR_SYM}${formatPrice(prices['BTC/USDT'])} <span class="price-change">live</span>`;
+            document.getElementById('gold-price-pill').innerHTML = `GOLD: ${CUR_SYM}${formatPrice(prices['XAU/USD'])} <span class="price-change">live</span>`;
             const inrValueRow = rate > 0 ? `<div class="metric"><span class="label">Value (INR)</span><span class="value" style="color:#ffd700">&#8377;${(inr.total_value || portfolio.total_value * rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div>` : '';
             document.getElementById('portfolio-metrics').innerHTML = `
                 <div class="metric"><span class="label">Total Value</span><span class="value">${CUR_SYM}${(portfolio.total_value || 0).toLocaleString(LOCALE, {minimumFractionDigits: 2})}</span></div>
@@ -539,9 +646,23 @@ DASHBOARD_TEMPLATE = """
             `;
 
             const positions = data.portfolio?.open_positions || {};
-            const posRows = Object.entries(positions).map(([sym, p]) =>
-                `<tr><td>${sym}</td><td>${p.side}</td><td>${p.qty?.toFixed(6) || 0}</td><td>${CUR_SYM}${p.entry?.toFixed(2) || 0}</td><td>${CUR_SYM}${p.current?.toFixed(2) || 0}</td><td class="${p.pnl >= 0 ? 'positive' : 'negative'}">${CUR_SYM}${p.pnl?.toFixed(2) || 0}</td><td class="${p.pnl_pct >= 0 ? 'positive' : 'negative'}">${p.pnl_pct?.toFixed(2) || 0}%</td></tr>`
-            ).join('') || '<tr><td colspan="7">No open positions</td></tr>';
+            const posRows = Object.entries(positions).map(([sym, p]) => {
+                const entryTime = p.entry_time ? new Date(p.entry_time).toLocaleString() : '--';
+                const stopText = p.stop_loss ? `${CUR_SYM}${p.stop_loss.toFixed(2)}` : '--';
+                return `<tr>
+                    <td>${sym}</td>
+                    <td>${p.side}</td>
+                    <td>${p.qty?.toFixed(6) || 0}</td>
+                    <td>${CUR_SYM}${p.entry?.toFixed(2) || 0}</td>
+                    <td>${entryTime}</td>
+                    <td>${CUR_SYM}${p.current?.toFixed(2) || 0}</td>
+                    <td class="${p.pnl >= 0 ? 'positive' : 'negative'}">${CUR_SYM}${p.pnl?.toFixed(2) || 0}</td>
+                    <td class="${p.pnl_pct >= 0 ? 'positive' : 'negative'}">${p.pnl_pct?.toFixed(2) || 0}%</td>
+                    <td>${stopText} <button class="row-action edit" onclick="editStop('${sym}', '${p.stop_loss || ''}')">Edit</button></td>
+                    <td><span class="source-badge">${p.source || 'Auto'}</span></td>
+                    <td><button class="row-action close" onclick="closePosition('${sym}')">Close</button></td>
+                </tr>`;
+            }).join('') || '<tr><td colspan="11">No open positions</td></tr>';
             document.getElementById('positions-table').innerHTML = posRows;
 
             // Store all trades globally for pagination and date filtering
@@ -738,6 +859,15 @@ class TradingDashboard:
         self._exchange_name = exchange_name
         self._leverage = leverage
 
+    def _latest_price(self, symbol: str) -> Optional[float]:
+        """Return the latest dashboard candle price, falling back to portfolio mark price."""
+        candles = self._candle_data.get(symbol, [])
+        if candles:
+            return float(candles[-1].get("close", 0) or 0)
+        if self._portfolio and symbol in self._portfolio.positions:
+            return float(self._portfolio.positions[symbol].current_price or 0)
+        return None
+
     def _setup_routes(self):
         """Register all Flask routes for dashboard and API."""
 
@@ -761,11 +891,17 @@ class TradingDashboard:
             recent_trades = self._portfolio.trade_history if self._portfolio else []
 
             uptime = str(datetime.now(timezone.utc) - self._start_time).split(".")[0]
+            prices = {
+                symbol: candles[-1]["close"]
+                for symbol, candles in self._candle_data.items()
+                if candles
+            }
 
             return jsonify({
                 "portfolio": portfolio_data,
                 "risk": risk_data,
                 "recent_trades": recent_trades,
+                "prices": prices,
                 "system": {
                     "mode": self._mode,
                     "uptime": uptime,
@@ -828,6 +964,117 @@ class TradingDashboard:
                 logger.info("Trading resumed via API")
                 return jsonify({"status": "resumed"})
             return jsonify({"error": "Risk manager not available"}), 500
+
+        @self.app.route("/api/halt-symbol/<symbol_raw>", methods=["POST"])
+        def api_halt_symbol(symbol_raw):
+            """Halt new trades for one symbol without stopping the full system."""
+            if not self._risk_manager:
+                return jsonify({"error": "Risk manager not available"}), 500
+            symbol = symbol_raw.replace("-", "/")
+            if hasattr(self._risk_manager, "halt_symbol"):
+                self._risk_manager.halt_symbol(symbol, "Manual dashboard halt")
+            else:
+                self._risk_manager.symbol_halts = getattr(self._risk_manager, "symbol_halts", {})
+                self._risk_manager.symbol_halts[symbol] = "Manual dashboard halt"
+            return jsonify({"status": "halted", "symbol": symbol})
+
+        @self.app.route("/api/resume-symbol/<symbol_raw>", methods=["POST"])
+        def api_resume_symbol(symbol_raw):
+            """Resume new trades for one symbol."""
+            if not self._risk_manager:
+                return jsonify({"error": "Risk manager not available"}), 500
+            symbol = symbol_raw.replace("-", "/")
+            if hasattr(self._risk_manager, "resume_symbol"):
+                self._risk_manager.resume_symbol(symbol)
+            else:
+                getattr(self._risk_manager, "symbol_halts", {}).pop(symbol, None)
+            return jsonify({"status": "resumed", "symbol": symbol})
+
+        @self.app.route("/api/manual-order", methods=["POST"])
+        def api_manual_order():
+            """Open a manual paper position from the dashboard controls."""
+            if self._mode != "paper":
+                return jsonify({"error": "Manual dashboard orders are enabled only in paper mode"}), 400
+            if not self._portfolio or not self._risk_manager:
+                return jsonify({"error": "Portfolio or risk manager not available"}), 500
+
+            payload = request.get_json(silent=True) or {}
+            symbol = str(payload.get("symbol", "BTC/USDT"))
+            side = str(payload.get("side", "buy")).lower()
+            leverage = max(1.0, float(payload.get("leverage", getattr(self, "_leverage", 1) or 1)))
+            allocation_pct = min(100.0, max(1.0, float(payload.get("allocation_pct", 10))))
+            price = self._latest_price(symbol)
+            if not price or price <= 0:
+                return jsonify({"error": f"No current price available for {symbol} yet"}), 400
+            if side not in ("buy", "sell"):
+                return jsonify({"error": "Side must be buy or sell"}), 400
+            if symbol in self._portfolio.positions:
+                return jsonify({"error": f"{symbol} already has an open position. Close it before opening another manual trade."}), 400
+
+            margin_usd = self._portfolio.total_value * allocation_pct / 100
+            allowed, reason = self._risk_manager.can_trade(symbol, side, margin_usd)
+            if not allowed:
+                return jsonify({"error": reason}), 400
+
+            notional_usd = margin_usd * leverage
+            quantity = notional_usd / price
+            stop_loss = self._risk_manager.calculate_stop_loss(price, side)
+            take_profit = self._risk_manager.calculate_take_profit(price, side, stop_loss)
+            position = self._portfolio.open_position(
+                symbol=symbol,
+                side=side,
+                quantity=quantity,
+                price=price,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+            )
+            setattr(position, "source", "Manual")
+            self._risk_manager.register_position(symbol, side, margin_usd, price, stop_loss, take_profit)
+            self.add_trade_marker(symbol, "buy" if side == "buy" else "sell", price)
+            return jsonify({
+                "status": "executed",
+                "symbol": symbol,
+                "side": side,
+                "price": price,
+                "quantity": position.quantity,
+                "margin_usd": margin_usd,
+                "notional_usd": notional_usd,
+                "leverage": leverage,
+            })
+
+        @self.app.route("/api/close-position/<symbol_raw>", methods=["POST"])
+        def api_close_position(symbol_raw):
+            """Close an open paper position from the dashboard table."""
+            if not self._portfolio:
+                return jsonify({"error": "Portfolio not available"}), 500
+            symbol = symbol_raw.replace("-", "/")
+            price = self._latest_price(symbol)
+            if not price or price <= 0:
+                return jsonify({"error": f"No current price available for {symbol}"}), 400
+            trade = self._portfolio.close_position(symbol, price, reason="manual_dashboard_close")
+            if not trade:
+                return jsonify({"error": f"No open position for {symbol}"}), 404
+            if self._risk_manager:
+                self._risk_manager.close_position(symbol, price)
+            self.add_trade_marker(symbol, "sell" if trade.get("side") == "buy" else "buy", price)
+            return jsonify({"status": "closed", "symbol": symbol, "trade": trade})
+
+        @self.app.route("/api/update-stop/<symbol_raw>", methods=["POST"])
+        def api_update_stop(symbol_raw):
+            """Update stop-loss price for an open paper position."""
+            if not self._portfolio:
+                return jsonify({"error": "Portfolio not available"}), 500
+            symbol = symbol_raw.replace("-", "/")
+            payload = request.get_json(silent=True) or {}
+            stop_loss = float(payload.get("stop_loss", 0) or 0)
+            if stop_loss <= 0:
+                return jsonify({"error": "Stop loss must be greater than zero"}), 400
+            if symbol not in self._portfolio.positions:
+                return jsonify({"error": f"No open position for {symbol}"}), 404
+            self._portfolio.positions[symbol].stop_loss = stop_loss
+            if self._risk_manager and symbol in self._risk_manager.open_positions:
+                self._risk_manager.open_positions[symbol]["stop_loss"] = stop_loss
+            return jsonify({"status": "updated", "symbol": symbol, "stop_loss": stop_loss})
 
         @self.app.route("/api/health")
         def api_health():
