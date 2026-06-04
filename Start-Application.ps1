@@ -79,7 +79,7 @@ if (-not $SkipInstall) {
 }
 
 Write-Step "Checking required Python packages"
-$DependencyCheck = @"
+$DependencyCheck = @'
 import importlib.util
 import sys
 
@@ -89,19 +89,23 @@ if missing:
     print(",".join(missing))
     sys.exit(1)
 print("OK")
-"@
+'@
 
-$CheckResult = & $PythonExe -c $DependencyCheck
+$DependencyCheckFile = Join-Path $env:TEMP "automated_trading_dependency_check.py"
+Set-Content -LiteralPath $DependencyCheckFile -Value $DependencyCheck -Encoding UTF8
+
+$CheckResult = & $PythonExe $DependencyCheckFile
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Missing required packages: $CheckResult" -ForegroundColor Yellow
     Write-Step "Installing missing dependencies from requirements.txt"
     & $PythonExe -m pip install -r requirements.txt
 
-    $CheckResult = & $PythonExe -c $DependencyCheck
+    $CheckResult = & $PythonExe $DependencyCheckFile
     if ($LASTEXITCODE -ne 0) {
         throw "Dependencies are still missing after install attempt: $CheckResult"
     }
 }
+Remove-Item -LiteralPath $DependencyCheckFile -ErrorAction SilentlyContinue
 Write-Host "Dependency check passed." -ForegroundColor Green
 
 if (-not (Test-Path -LiteralPath ".env") -and (Test-Path -LiteralPath ".env.example")) {
