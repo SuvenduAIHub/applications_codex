@@ -142,7 +142,9 @@ class RiskConfig:
     max_risk_per_trade_pct: float = 0.75
 
     # Maximum total portfolio exposure percentage — high for active scalping
-    max_portfolio_exposure_pct: float = 35.0
+    max_portfolio_exposure_pct: float = field(
+        default_factory=lambda: float(os.environ.get("MAX_PORTFOLIO_EXPOSURE_PCT", "35.0"))
+    )
 
     # Maximum number of concurrent open positions
     max_concurrent_positions: int = 2
@@ -151,16 +153,38 @@ class RiskConfig:
     max_drawdown_pct: float = 15.0
 
     # Stop-loss percentage from entry price — wider for bigger profit targets
-    default_stop_loss_pct: float = 2.0
+    default_stop_loss_pct: float = field(
+        default_factory=lambda: float(os.environ.get("DEFAULT_STOP_LOSS_PCT", "2.0"))
+    )
+
+    # Optional fixed price-distance stop loss in USD.
+    # Example: 200 means long SL = entry - 200, short SL = entry + 200.
+    fixed_stop_loss_usd: float = field(
+        default_factory=lambda: float(os.environ.get("FIXED_STOP_LOSS_USD", "0"))
+    )
 
     # Take-profit percentage from entry price — targets meaningful moves
     default_take_profit_pct: float = 4.0
 
     # Trailing stop activation percentage — locks in profit after 3% move
-    trailing_stop_activation_pct: float = 3.0
+    trailing_stop_activation_pct: float = field(
+        default_factory=lambda: float(os.environ.get("TRAILING_STOP_ACTIVATION_PCT", "3.0"))
+    )
 
     # Trailing stop distance percentage — trails 1.5% behind the peak
-    trailing_stop_distance_pct: float = 1.5
+    trailing_stop_distance_pct: float = field(
+        default_factory=lambda: float(os.environ.get("TRAILING_STOP_DISTANCE_PCT", "1.5"))
+    )
+
+    # Optional fixed trailing stop in USD.
+    # Example: activation=100, distance=20 means trail starts after $100 profit
+    # and keeps the stop $20 behind the best price.
+    trailing_stop_activation_usd: float = field(
+        default_factory=lambda: float(os.environ.get("TRAILING_STOP_ACTIVATION_USD", "0"))
+    )
+    trailing_stop_distance_usd: float = field(
+        default_factory=lambda: float(os.environ.get("TRAILING_STOP_DISTANCE_USD", "0"))
+    )
 
     # Risk-reward ratio minimum threshold
     min_risk_reward_ratio: float = 1.5

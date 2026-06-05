@@ -22,7 +22,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - TRADING_MODE=paper                 # Options: backtest, paper, live
-      - INITIAL_BALANCE=100000
+      - INITIAL_BALANCE=${INITIAL_BALANCE:-100000}
+      - LEVERAGE=${LEVERAGE:-1}
+      - MAX_PORTFOLIO_EXPOSURE_PCT=${MAX_PORTFOLIO_EXPOSURE_PCT:-35}
+      - FIXED_STOP_LOSS_USD=${FIXED_STOP_LOSS_USD:-0}
+      - TRAILING_STOP_ACTIVATION_USD=${TRAILING_STOP_ACTIVATION_USD:-0}
+      - TRAILING_STOP_DISTANCE_USD=${TRAILING_STOP_DISTANCE_USD:-0}
       - LOG_LEVEL=INFO
       # Optional: Slack webhook for alerts
       # - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/your/webhook/url
@@ -34,7 +39,7 @@ services:
       retries: 3
       start_period: 30s
     # Override default command for paper trading mode
-    command: ["python", "main.py", "--mode", "paper", "--dashboard-port", "5000"]
+    command: ["python", "main.py", "--mode", "paper", "--balance", "${INITIAL_BALANCE:-100000}", "--leverage", "${LEVERAGE:-1}", "--dashboard-port", "5000"]
 
   # Backtesting service (run-once, generates reports)
   backtester:

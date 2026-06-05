@@ -779,6 +779,13 @@ DASHBOARD_TEMPLATE = """
             `;
 
             const system = data.system || {};
+            const leverageSelect = document.getElementById('manual-leverage');
+            if (leverageSelect && system.leverage) {
+                const leverageValue = String(system.leverage);
+                if ([...leverageSelect.options].some(option => option.value === leverageValue)) {
+                    leverageSelect.value = leverageValue;
+                }
+            }
             const isActive = !risk.trading_halted;
             const exchangeName = (system.exchange || 'paper').charAt(0).toUpperCase() + (system.exchange || 'paper').slice(1);
             const exchangeColor = {'Binance': '#F0B90B', 'Wazirx': '#2C74F6', 'Delta': '#00D26A', 'Paper': '#888'}[exchangeName] || '#888';

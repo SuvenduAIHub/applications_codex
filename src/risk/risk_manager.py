@@ -171,7 +171,9 @@ class RiskManager:
         """
         pct = custom_pct or self.config.default_stop_loss_pct
 
-        if atr > 0:
+        if self.config.fixed_stop_loss_usd > 0:
+            stop_distance = self.config.fixed_stop_loss_usd
+        elif atr > 0:
             # ATR-based stop: 2x ATR from entry
             stop_distance = 2.0 * atr
         else:
@@ -333,23 +335,34 @@ class RiskManager:
         side = pos["side"]
         activation_pct = self.config.trailing_stop_activation_pct / 100
         distance_pct = self.config.trailing_stop_distance_pct / 100
+        activation_usd = self.config.trailing_stop_activation_usd
+        distance_usd = self.config.trailing_stop_distance_usd
 
         if side == "buy":
             # Update highest price seen
             pos["highest_price"] = max(pos["highest_price"], current_price)
-            # Check if trailing stop should activate
-            profit_pct = (current_price - entry) / entry
-            if profit_pct >= activation_pct:
+            if activation_usd > 0 and distance_usd > 0:
+                should_trail = current_price - entry >= activation_usd
+                new_stop = pos["highest_price"] - distance_usd
+            else:
+                profit_pct = (current_price - entry) / entry
+                should_trail = profit_pct >= activation_pct
                 new_stop = pos["highest_price"] * (1 - distance_pct)
+            if should_trail:
                 if new_stop > pos["stop_loss"]:
                     pos["stop_loss"] = new_stop
                     logger.debug(f"Trailing stop updated for {symbol}: {new_stop:.2f}")
                     return new_stop
         else:
             pos["lowest_price"] = min(pos["lowest_price"], current_price)
-            profit_pct = (entry - current_price) / entry
-            if profit_pct >= activation_pct:
+            if activation_usd > 0 and distance_usd > 0:
+                should_trail = entry - current_price >= activation_usd
+                new_stop = pos["lowest_price"] + distance_usd
+            else:
+                profit_pct = (entry - current_price) / entry
+                should_trail = profit_pct >= activation_pct
                 new_stop = pos["lowest_price"] * (1 + distance_pct)
+            if should_trail:
                 if new_stop < pos["stop_loss"]:
                     pos["stop_loss"] = new_stop
                     logger.debug(f"Trailing stop updated for {symbol}: {new_stop:.2f}")

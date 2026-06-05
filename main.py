@@ -449,17 +449,24 @@ def run_paper_trading(config: TradingSystemConfig):
                         can_trade, reason = risk_manager.can_trade(symbol, "sell", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
+                            stop_loss = (
+                                risk_manager.calculate_stop_loss(current_price, "sell", atr=atr)
+                                if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
+                            )
+                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
+                                current_price, "sell", stop_loss or (current_price + 2.5 * atr)
+                            )
                             portfolio.open_position(
                                 symbol=symbol, side="sell", quantity=quantity,
                                 price=current_price,
-                                stop_loss=signal.stop_loss,
-                                take_profit=signal.take_profit,
+                                stop_loss=stop_loss,
+                                take_profit=take_profit,
                             )
                             risk_manager.register_position(
                                 symbol=symbol, side="sell", size_usd=base_size_usd,
                                 entry_price=current_price,
-                                stop_loss=signal.stop_loss or (current_price + 2.5 * atr),
-                                take_profit=signal.take_profit or (current_price - 4 * atr),
+                                stop_loss=stop_loss or (current_price + 2.5 * atr),
+                                take_profit=take_profit,
                             )
                             sl_str = f"${signal.stop_loss:,.2f}" if signal.stop_loss else "N/A"
                             tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
@@ -493,17 +500,24 @@ def run_paper_trading(config: TradingSystemConfig):
                         can_trade, reason = risk_manager.can_trade(symbol, "buy", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
+                            stop_loss = (
+                                risk_manager.calculate_stop_loss(current_price, "buy", atr=atr)
+                                if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
+                            )
+                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
+                                current_price, "buy", stop_loss or (current_price - 2.5 * atr)
+                            )
                             portfolio.open_position(
                                 symbol=symbol, side="buy", quantity=quantity,
                                 price=current_price,
-                                stop_loss=signal.stop_loss,
-                                take_profit=signal.take_profit,
+                                stop_loss=stop_loss,
+                                take_profit=take_profit,
                             )
                             risk_manager.register_position(
                                 symbol=symbol, side="buy", size_usd=base_size_usd,
                                 entry_price=current_price,
-                                stop_loss=signal.stop_loss or (current_price - 2.5 * atr),
-                                take_profit=signal.take_profit or (current_price + 4 * atr),
+                                stop_loss=stop_loss or (current_price - 2.5 * atr),
+                                take_profit=take_profit,
                             )
                             sl_str = f"${signal.stop_loss:,.2f}" if signal.stop_loss else "N/A"
                             tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
@@ -525,17 +539,24 @@ def run_paper_trading(config: TradingSystemConfig):
                         can_trade, reason = risk_manager.can_trade(symbol, "sell", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
+                            stop_loss = (
+                                risk_manager.calculate_stop_loss(current_price, "sell", atr=atr)
+                                if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
+                            )
+                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
+                                current_price, "sell", stop_loss or (current_price + 2.5 * atr)
+                            )
                             portfolio.open_position(
                                 symbol=symbol, side="sell", quantity=quantity,
                                 price=current_price,
-                                stop_loss=signal.stop_loss,
-                                take_profit=signal.take_profit,
+                                stop_loss=stop_loss,
+                                take_profit=take_profit,
                             )
                             risk_manager.register_position(
                                 symbol=symbol, side="sell", size_usd=base_size_usd,
                                 entry_price=current_price,
-                                stop_loss=signal.stop_loss or (current_price + 2.5 * atr),
-                                take_profit=signal.take_profit or (current_price - 4 * atr),
+                                stop_loss=stop_loss or (current_price + 2.5 * atr),
+                                take_profit=take_profit,
                             )
                             ensemble.on_trade_executed()
                             dashboard.add_trade_marker(symbol, "sell", current_price)
@@ -561,17 +582,24 @@ def run_paper_trading(config: TradingSystemConfig):
                         can_trade, reason = risk_manager.can_trade(symbol, "buy", base_size_usd)
                         if can_trade:
                             quantity = size_usd / current_price
+                            stop_loss = (
+                                risk_manager.calculate_stop_loss(current_price, "buy", atr=atr)
+                                if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
+                            )
+                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
+                                current_price, "buy", stop_loss or (current_price - 2.5 * atr)
+                            )
                             portfolio.open_position(
                                 symbol=symbol, side="buy", quantity=quantity,
                                 price=current_price,
-                                stop_loss=signal.stop_loss,
-                                take_profit=signal.take_profit,
+                                stop_loss=stop_loss,
+                                take_profit=take_profit,
                             )
                             risk_manager.register_position(
                                 symbol=symbol, side="buy", size_usd=base_size_usd,
                                 entry_price=current_price,
-                                stop_loss=signal.stop_loss or (current_price - 2.5 * atr),
-                                take_profit=signal.take_profit or (current_price + 4 * atr),
+                                stop_loss=stop_loss or (current_price - 2.5 * atr),
+                                take_profit=take_profit,
                             )
                             ensemble.on_trade_executed()
                             dashboard.add_trade_marker(symbol, "buy", current_price)
