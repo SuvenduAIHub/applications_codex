@@ -468,8 +468,8 @@ def run_paper_trading(config: TradingSystemConfig):
                                 stop_loss=stop_loss or (current_price + 2.5 * atr),
                                 take_profit=take_profit,
                             )
-                            sl_str = f"${signal.stop_loss:,.2f}" if signal.stop_loss else "N/A"
-                            tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
+                            sl_str = f"${stop_loss:,.2f}" if stop_loss else "N/A"
+                            tp_str = f"${take_profit:,.2f}" if take_profit else "N/A"
                             logger.info(
                                 f"SHORT OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
                                 f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
@@ -519,8 +519,8 @@ def run_paper_trading(config: TradingSystemConfig):
                                 stop_loss=stop_loss or (current_price - 2.5 * atr),
                                 take_profit=take_profit,
                             )
-                            sl_str = f"${signal.stop_loss:,.2f}" if signal.stop_loss else "N/A"
-                            tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
+                            sl_str = f"${stop_loss:,.2f}" if stop_loss else "N/A"
+                            tp_str = f"${take_profit:,.2f}" if take_profit else "N/A"
                             logger.info(
                                 f"LONG OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
                                 f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
@@ -560,8 +560,8 @@ def run_paper_trading(config: TradingSystemConfig):
                             )
                             ensemble.on_trade_executed()
                             dashboard.add_trade_marker(symbol, "sell", current_price)
-                            sl_str = f"${signal.stop_loss:,.2f}" if signal.stop_loss else "N/A"
-                            tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
+                            sl_str = f"${stop_loss:,.2f}" if stop_loss else "N/A"
+                            tp_str = f"${take_profit:,.2f}" if take_profit else "N/A"
                             logger.info(
                                 f"SHORT OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
                                 f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
@@ -603,8 +603,8 @@ def run_paper_trading(config: TradingSystemConfig):
                             )
                             ensemble.on_trade_executed()
                             dashboard.add_trade_marker(symbol, "buy", current_price)
-                            sl_str = f"${signal.stop_loss:,.2f}" if signal.stop_loss else "N/A"
-                            tp_str = f"${signal.take_profit:,.2f}" if signal.take_profit else "N/A"
+                            sl_str = f"${stop_loss:,.2f}" if stop_loss else "N/A"
+                            tp_str = f"${take_profit:,.2f}" if take_profit else "N/A"
                             logger.info(
                                 f"LONG OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
                                 f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
