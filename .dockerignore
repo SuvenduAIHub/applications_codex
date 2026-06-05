@@ -10,7 +10,7 @@ build
 .pytest_cache
 .mypy_cache
 logs/
-data/
+/data/
 reports/
 state/
 *.db

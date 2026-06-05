@@ -8,7 +8,7 @@ build/
 .mypy_cache/
 *.db
 logs/
-data/
+/data/
 reports/
 state/
 venv/
