@@ -404,7 +404,9 @@ def run_paper_trading(config: TradingSystemConfig):
                                     f"{trigger.upper()} hit for {symbol}: PnL=${result['pnl']:,.2f}"
                                 )
 
-                        risk_manager.update_trailing_stop(symbol, current_price)
+                        new_stop = risk_manager.update_trailing_stop(symbol, current_price)
+                        if new_stop and symbol in portfolio.positions:
+                            portfolio.positions[symbol].stop_loss = new_stop
 
                     # Generate signal — always check, no cooldown gating
                     signal = ensemble.generate_signal(enriched, symbol)
@@ -421,114 +423,16 @@ def run_paper_trading(config: TradingSystemConfig):
                         pos_side = portfolio.positions[symbol].side
                         current_side = "buy" if pos_side == PositionSide.LONG else "sell"
 
-                    # --- POSITION FLIPPING LOGIC ---
-                    # The system is "always in market" — it flips between long and short
-                    # based on strategy signals. This ensures maximum trade frequency.
-
-                    # Case 1: SELL signal + currently LONG → close long, open short
-                    if signal.is_sell and has_position and current_side == "buy":
-                        result = portfolio.close_position(symbol, current_price, reason="flip_to_short")
-                        if result:
-                            risk_manager.close_position(symbol, current_price)
-                            ensemble.on_trade_executed()
-                            dashboard.add_trade_marker(symbol, "sell", current_price)
-                            logger.info(
-                                f"SELL (CLOSE LONG): {symbol} @ ${current_price:,.2f} "
-                                f"| PnL=${result['pnl']:,.2f} ({result['pnl_pct']:.2f}%)"
-                            )
-                        logger.info(f"Closed LONG for {symbol}; waiting for a fresh candle before opening SHORT")
-                        continue
-                        # Now open short position
-                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
-                            method="volatility",
-                            portfolio_value=portfolio.total_value,
-                            current_price=current_price,
-                            atr=atr,
+                    # Existing positions are managed only by stop-loss, take-profit, and trailing stop.
+                    # Opposite strategy signals are ignored until the current position exits by risk rules.
+                    if has_position:
+                        logger.info(
+                            f"{symbol} already has an open {current_side.upper()} position; "
+                            "ignoring new direction signals until stop/trailing/take-profit exit"
                         )
-                        size_usd = base_size_usd * config.execution.leverage
-                        can_trade, reason = risk_manager.can_trade(symbol, "sell", base_size_usd)
-                        if can_trade:
-                            quantity = size_usd / current_price
-                            stop_loss = (
-                                risk_manager.calculate_stop_loss(current_price, "sell", atr=atr)
-                                if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
-                            )
-                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
-                                current_price, "sell", stop_loss or (current_price + 2.5 * atr)
-                            )
-                            portfolio.open_position(
-                                symbol=symbol, side="sell", quantity=quantity,
-                                price=current_price,
-                                stop_loss=stop_loss,
-                                take_profit=take_profit,
-                            )
-                            risk_manager.register_position(
-                                symbol=symbol, side="sell", size_usd=base_size_usd,
-                                entry_price=current_price,
-                                stop_loss=stop_loss or (current_price + 2.5 * atr),
-                                take_profit=take_profit,
-                            )
-                            sl_str = f"${stop_loss:,.2f}" if stop_loss else "N/A"
-                            tp_str = f"${take_profit:,.2f}" if take_profit else "N/A"
-                            logger.info(
-                                f"SHORT OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
-                                f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
-                                f"| leverage={config.execution.leverage}x | SL={sl_str} TP={tp_str}"
-                            )
 
-                    # Case 2: BUY signal + currently SHORT → close short, open long
-                    elif signal.is_buy and has_position and current_side == "sell":
-                        result = portfolio.close_position(symbol, current_price, reason="flip_to_long")
-                        if result:
-                            risk_manager.close_position(symbol, current_price)
-                            ensemble.on_trade_executed()
-                            dashboard.add_trade_marker(symbol, "buy", current_price)
-                            logger.info(
-                                f"BUY (CLOSE SHORT): {symbol} @ ${current_price:,.2f} "
-                                f"| PnL=${result['pnl']:,.2f} ({result['pnl_pct']:.2f}%)"
-                            )
-                        logger.info(f"Closed SHORT for {symbol}; waiting for a fresh candle before opening LONG")
-                        continue
-                        # Now open long position
-                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
-                            method="volatility",
-                            portfolio_value=portfolio.total_value,
-                            current_price=current_price,
-                            atr=atr,
-                        )
-                        size_usd = base_size_usd * config.execution.leverage
-                        can_trade, reason = risk_manager.can_trade(symbol, "buy", base_size_usd)
-                        if can_trade:
-                            quantity = size_usd / current_price
-                            stop_loss = (
-                                risk_manager.calculate_stop_loss(current_price, "buy", atr=atr)
-                                if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
-                            )
-                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
-                                current_price, "buy", stop_loss or (current_price - 2.5 * atr)
-                            )
-                            portfolio.open_position(
-                                symbol=symbol, side="buy", quantity=quantity,
-                                price=current_price,
-                                stop_loss=stop_loss,
-                                take_profit=take_profit,
-                            )
-                            risk_manager.register_position(
-                                symbol=symbol, side="buy", size_usd=base_size_usd,
-                                entry_price=current_price,
-                                stop_loss=stop_loss or (current_price - 2.5 * atr),
-                                take_profit=take_profit,
-                            )
-                            sl_str = f"${stop_loss:,.2f}" if stop_loss else "N/A"
-                            tp_str = f"${take_profit:,.2f}" if take_profit else "N/A"
-                            logger.info(
-                                f"LONG OPENED: {symbol} qty={quantity:.6f} @ ${current_price:,.2f} "
-                                f"= ${size_usd:,.2f} | margin=${base_size_usd:,.2f} "
-                                f"| leverage={config.execution.leverage}x | SL={sl_str} TP={tp_str}"
-                            )
-
-                    # Case 3: SELL signal + no position → open short directly
-                    elif signal.is_sell and not has_position and signal.confidence >= 0.62:
+                    # SELL signal + no position → open short directly
+                    elif signal.is_sell and signal.confidence >= 0.62:
                         base_size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
@@ -570,8 +474,8 @@ def run_paper_trading(config: TradingSystemConfig):
                         else:
                             logger.info(f"Trade blocked: {reason}")
 
-                    # Case 4: BUY signal + no position → open long directly
-                    elif signal.is_buy and not has_position and signal.confidence >= 0.62:
+                    # BUY signal + no position → open long directly
+                    elif signal.is_buy and signal.confidence >= 0.62:
                         base_size_usd = risk_manager.position_sizer.calculate_position_size(
                             method="volatility",
                             portfolio_value=portfolio.total_value,
