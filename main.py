@@ -16,7 +16,7 @@ import os
 import signal
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -341,6 +341,8 @@ def run_paper_trading(config: TradingSystemConfig):
     trade_logger = TradeLogger()
 
     logger.info("Paper trading loop started. Press Ctrl+C to stop.")
+    reentry_cooldown_minutes = float(os.environ.get("REENTRY_COOLDOWN_MINUTES", "15"))
+    last_risk_exit_at = {}
 
     iteration = 0
     while _running:
@@ -396,6 +398,7 @@ def run_paper_trading(config: TradingSystemConfig):
                             result = portfolio.close_position(symbol, current_price, reason=trigger)
                             if result:
                                 position_closed_this_tick = True
+                                last_risk_exit_at[symbol] = datetime.now(timezone.utc)
                                 trade_logger.log_position_closed(
                                     symbol, result["pnl"], result["pnl_pct"], trigger
                                 )
@@ -413,6 +416,18 @@ def run_paper_trading(config: TradingSystemConfig):
                     if position_closed_this_tick:
                         logger.info(f"{symbol} position closed by risk rule; skipping new entry until next tick")
                         continue
+
+                    last_exit = last_risk_exit_at.get(symbol)
+                    if last_exit:
+                        now = datetime.now(timezone.utc)
+                        cooldown_until = last_exit + timedelta(minutes=reentry_cooldown_minutes)
+                        if now < cooldown_until:
+                            remaining = int((cooldown_until - now).total_seconds())
+                            logger.info(
+                                f"{symbol} in {reentry_cooldown_minutes:.0f}min re-entry cooldown "
+                                f"after risk exit ({remaining}s remaining)"
+                            )
+                            continue
 
                     # Generate signal — always check, no cooldown gating
                     signal = ensemble.generate_signal(enriched, symbol)
