@@ -450,7 +450,9 @@ def run_paper_trading(config: TradingSystemConfig):
                         if can_trade:
                             quantity = size_usd / current_price
                             stop_loss = (
-                                risk_manager.calculate_stop_loss(current_price, "sell", atr=atr)
+                                risk_manager.calculate_stop_loss(
+                                    current_price, "sell", atr=atr, position_notional_usd=size_usd
+                                )
                                 if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
                             )
                             if config.risk.fixed_take_profit_usd > 0:
@@ -472,6 +474,7 @@ def run_paper_trading(config: TradingSystemConfig):
                                 entry_price=current_price,
                                 stop_loss=stop_loss or (current_price + 2.5 * atr),
                                 take_profit=take_profit,
+                                notional_usd=size_usd,
                             )
                             ensemble.on_trade_executed()
                             dashboard.add_trade_marker(symbol, "sell", current_price)
@@ -498,7 +501,9 @@ def run_paper_trading(config: TradingSystemConfig):
                         if can_trade:
                             quantity = size_usd / current_price
                             stop_loss = (
-                                risk_manager.calculate_stop_loss(current_price, "buy", atr=atr)
+                                risk_manager.calculate_stop_loss(
+                                    current_price, "buy", atr=atr, position_notional_usd=size_usd
+                                )
                                 if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
                             )
                             if config.risk.fixed_take_profit_usd > 0:
@@ -520,6 +525,7 @@ def run_paper_trading(config: TradingSystemConfig):
                                 entry_price=current_price,
                                 stop_loss=stop_loss or (current_price - 2.5 * atr),
                                 take_profit=take_profit,
+                                notional_usd=size_usd,
                             )
                             ensemble.on_trade_executed()
                             dashboard.add_trade_marker(symbol, "buy", current_price)

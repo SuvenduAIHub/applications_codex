@@ -1314,7 +1314,9 @@ class TradingDashboard:
 
             notional_usd = margin_usd * leverage
             quantity = notional_usd / price
-            stop_loss = self._risk_manager.calculate_stop_loss(price, side)
+            stop_loss = self._risk_manager.calculate_stop_loss(
+                price, side, position_notional_usd=notional_usd
+            )
             fixed_take_profit = getattr(self._risk_manager.config, "fixed_take_profit_usd", 0)
             dollar_risk_enabled = (
                 getattr(self._risk_manager.config, "fixed_stop_loss_usd", 0) > 0
@@ -1335,7 +1337,9 @@ class TradingDashboard:
                 take_profit=take_profit,
             )
             setattr(position, "source", "Manual")
-            self._risk_manager.register_position(symbol, side, margin_usd, price, stop_loss, take_profit)
+            self._risk_manager.register_position(
+                symbol, side, margin_usd, price, stop_loss, take_profit, notional_usd=notional_usd
+            )
             self.add_trade_marker(symbol, "buy" if side == "buy" else "sell", price)
             return jsonify({
                 "status": "executed",

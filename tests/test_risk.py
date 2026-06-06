@@ -178,6 +178,50 @@ class TestRiskManager:
         self.rm.register_position("BTC/USDT", "buy", 10000, 50000, 48000, 55000)
         assert self.rm.check_stop_levels("BTC/USDT", 56000) == "take_profit"
 
+    def test_fixed_dollar_stop_uses_position_pnl_not_raw_price_distance(self):
+        """Fixed dollar stop should represent account PnL on the leveraged notional."""
+        config = RiskConfig(fixed_stop_loss_usd=200)
+        rm = RiskManager(config)
+        entry = 60000.0
+        margin = 500.0
+        notional = margin * 25
+
+        stop_loss = rm.calculate_stop_loss(
+            entry,
+            "buy",
+            position_notional_usd=notional,
+        )
+
+        assert stop_loss == pytest.approx(59040.0)
+
+    def test_trailing_stop_uses_position_pnl_dollars(self):
+        """Dollar trailing should activate on actual leveraged PnL and trail by PnL dollars."""
+        config = RiskConfig(
+            fixed_stop_loss_usd=200,
+            trailing_stop_activation_usd=100,
+            trailing_stop_distance_usd=20,
+        )
+        rm = RiskManager(config)
+        rm.initialize(1000.0)
+        entry = 60000.0
+        margin = 500.0
+        notional = margin * 25
+        stop_loss = rm.calculate_stop_loss(entry, "buy", position_notional_usd=notional)
+        rm.register_position(
+            "BTC/USDT",
+            "buy",
+            margin,
+            entry,
+            stop_loss,
+            None,
+            notional_usd=notional,
+        )
+
+        assert rm.update_trailing_stop("BTC/USDT", 60400.0) is None
+        new_stop = rm.update_trailing_stop("BTC/USDT", 60480.0)
+
+        assert new_stop == pytest.approx(60384.0)
+
     def test_risk_summary(self):
         """Risk summary should contain expected keys."""
         summary = self.rm.get_risk_summary()

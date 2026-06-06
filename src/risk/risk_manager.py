@@ -156,6 +156,7 @@ class RiskManager:
         side: str,
         atr: float = 0.0,
         custom_pct: Optional[float] = None,
+        position_notional_usd: Optional[float] = None,
     ) -> float:
         """
         Calculate stop-loss price for a position.
@@ -165,13 +166,17 @@ class RiskManager:
             side: "buy" (long) or "sell" (short)
             atr: Current ATR for dynamic stop calculation
             custom_pct: Override stop-loss percentage
+            position_notional_usd: Leveraged position value for dollar-PnL stops
 
         Returns:
             Stop-loss price
         """
         pct = custom_pct or self.config.default_stop_loss_pct
 
-        if self.config.fixed_stop_loss_usd > 0:
+        if self.config.fixed_stop_loss_usd > 0 and position_notional_usd and position_notional_usd > 0:
+            quantity = position_notional_usd / entry_price
+            stop_distance = self.config.fixed_stop_loss_usd / quantity
+        elif self.config.fixed_stop_loss_usd > 0:
             stop_distance = self.config.fixed_stop_loss_usd
         elif atr > 0:
             # ATR-based stop: 2x ATR from entry
@@ -227,6 +232,7 @@ class RiskManager:
         entry_price: float,
         stop_loss: float,
         take_profit: Optional[float],
+        notional_usd: Optional[float] = None,
     ) -> None:
         """
         Register a new open position for tracking.
@@ -238,10 +244,14 @@ class RiskManager:
             entry_price: Entry price
             stop_loss: Stop-loss price
             take_profit: Take-profit price
+            notional_usd: Leveraged position value used for actual PnL dollar stops
         """
+        position_notional = notional_usd if notional_usd is not None else size_usd
         self.open_positions[symbol] = {
             "side": side,
             "size_usd": size_usd,
+            "notional_usd": position_notional,
+            "quantity": position_notional / entry_price if entry_price > 0 else 0.0,
             "entry_price": entry_price,
             "stop_loss": stop_loss,
             "take_profit": take_profit,
@@ -273,6 +283,7 @@ class RiskManager:
         pos = self.open_positions.pop(symbol)
         entry = pos["entry_price"]
         size = pos["size_usd"]
+        notional = pos.get("notional_usd", size)
         side = pos["side"]
 
         # Calculate PnL
@@ -281,7 +292,7 @@ class RiskManager:
         else:
             pnl_pct = (entry - exit_price) / entry
 
-        pnl_usd = size * pnl_pct
+        pnl_usd = notional * pnl_pct
 
         # Update tracking
         self.daily_pnl += pnl_usd
@@ -306,6 +317,7 @@ class RiskManager:
             "entry_price": entry,
             "exit_price": exit_price,
             "size_usd": size,
+            "notional_usd": notional,
             "pnl_usd": pnl_usd,
             "pnl_pct": pnl_pct * 100,
             "duration": (datetime.now(timezone.utc) - pos["opened_at"]).total_seconds(),
@@ -338,13 +350,17 @@ class RiskManager:
         distance_pct = self.config.trailing_stop_distance_pct / 100
         activation_usd = self.config.trailing_stop_activation_usd
         distance_usd = self.config.trailing_stop_distance_usd
+        quantity = pos.get("quantity", 0.0) or (
+            pos.get("notional_usd", 0.0) / entry if entry > 0 else 0.0
+        )
 
         if side == "buy":
             # Update highest price seen
             pos["highest_price"] = max(pos["highest_price"], current_price)
             if activation_usd > 0 and distance_usd > 0:
-                should_trail = current_price - entry >= activation_usd
-                new_stop = pos["highest_price"] - distance_usd
+                current_pnl = (current_price - entry) * quantity
+                should_trail = current_pnl >= activation_usd
+                new_stop = pos["highest_price"] - (distance_usd / quantity if quantity > 0 else distance_usd)
             else:
                 profit_pct = (current_price - entry) / entry
                 should_trail = profit_pct >= activation_pct
@@ -357,8 +373,9 @@ class RiskManager:
         else:
             pos["lowest_price"] = min(pos["lowest_price"], current_price)
             if activation_usd > 0 and distance_usd > 0:
-                should_trail = entry - current_price >= activation_usd
-                new_stop = pos["lowest_price"] + distance_usd
+                current_pnl = (entry - current_price) * quantity
+                should_trail = current_pnl >= activation_usd
+                new_stop = pos["lowest_price"] + (distance_usd / quantity if quantity > 0 else distance_usd)
             else:
                 profit_pct = (entry - current_price) / entry
                 should_trail = profit_pct >= activation_pct
