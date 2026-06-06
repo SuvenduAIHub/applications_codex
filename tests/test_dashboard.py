@@ -204,3 +204,46 @@ class TestDashboardControlAPI:
         """Resume endpoint should return acknowledgement."""
         response = dashboard_app.post("/api/resume")
         assert response.status_code == 200
+
+
+class TestDashboardLogin:
+    """Tests for optional dashboard form authentication."""
+
+    def test_login_redirects_dashboard_when_enabled(self, monkeypatch):
+        monkeypatch.setenv("DASHBOARD_AUTH_ENABLED", "true")
+        monkeypatch.setenv("DASHBOARD_USERNAME", "test-user")
+        monkeypatch.setenv("DASHBOARD_PASSWORD", "test-pass")
+        dashboard = TradingDashboard(port=5097)
+        client = dashboard.app.test_client()
+
+        response = client.get("/")
+
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+
+    def test_login_allows_dashboard_after_valid_credentials(self, monkeypatch):
+        monkeypatch.setenv("DASHBOARD_AUTH_ENABLED", "true")
+        monkeypatch.setenv("DASHBOARD_USERNAME", "test-user")
+        monkeypatch.setenv("DASHBOARD_PASSWORD", "test-pass")
+        dashboard = TradingDashboard(port=5096)
+        client = dashboard.app.test_client()
+
+        response = client.post(
+            "/login",
+            data={"username": "test-user", "password": "test-pass"},
+            follow_redirects=True,
+        )
+
+        assert response.status_code == 200
+        assert b"Suvshrabani AI Trading System" in response.data
+
+    def test_health_stays_public_for_container_healthcheck(self, monkeypatch):
+        monkeypatch.setenv("DASHBOARD_AUTH_ENABLED", "true")
+        monkeypatch.setenv("DASHBOARD_USERNAME", "test-user")
+        monkeypatch.setenv("DASHBOARD_PASSWORD", "test-pass")
+        dashboard = TradingDashboard(port=5095)
+        client = dashboard.app.test_client()
+
+        response = client.get("/api/health")
+
+        assert response.status_code == 200

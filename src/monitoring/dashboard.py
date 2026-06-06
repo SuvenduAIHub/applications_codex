@@ -8,11 +8,12 @@ Uses TradingView Lightweight Charts (open-source) for interactive candlestick ch
 
 import json
 import os
+import secrets
 import threading
 from datetime import datetime, timezone
 from typing import Optional
 
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, redirect, render_template_string, request, session, url_for
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from loguru import logger
@@ -140,6 +141,9 @@ DASHBOARD_TEMPLATE = """
         .theme-toggle { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); background: var(--btn-bg); color: #fff; border: 1px solid var(--border-color); padding: 8px 14px; border-radius: 20px; cursor: pointer; font-size: 18px; transition: background 0.3s; display: flex; align-items: center; gap: 6px; }
         .theme-toggle:hover { background: var(--btn-hover); }
         .theme-toggle .label { font-size: 11px; }
+        .session-actions { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 8px; }
+        .logout-link { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 8px; background: #ef4444; color: #fff; font-weight: 800; font-size: 12px; text-decoration: none; }
+        .logout-link:hover { background: #dc2626; }
 
         /* Chart section styles */
         .chart-section { margin-bottom: 15px; }
@@ -213,6 +217,11 @@ DASHBOARD_TEMPLATE = """
 </head>
 <body>
     <div class="header">
+        {% if auth_enabled %}
+        <div class="session-actions">
+            <a class="logout-link" href="/logout">Logout</a>
+        </div>
+        {% endif %}
         <div class="header-content">
             <h1>Suvshrabani AI Trading System <span class="mode-badge {{ 'live' if mode == 'live' else 'demo' }}">{{ 'LIVE' if mode == 'live' else 'DEMO' }}</span></h1>
             <div class="subtitle">BTC/USDT & XAU/USD | AI-Powered Real-Time Trading {{ '| Delta Exchange' if mode == 'live' else '| Paper Trading' }}</div>
@@ -938,6 +947,87 @@ DASHBOARD_TEMPLATE = """
 </html>
 """
 
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suvshrabani AI Trading System - Login</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eef2f7;
+            color: #1e293b;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+        .login-panel {
+            width: min(420px, 100%);
+            background: #ffffff;
+            border: 1px solid #c7d2e0;
+            border-radius: 10px;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+            padding: 28px;
+        }
+        h1 { color: #2563eb; font-size: 24px; line-height: 1.2; text-align: center; margin-bottom: 6px; }
+        .subtitle { color: #64748b; text-align: center; font-size: 14px; font-weight: 600; margin-bottom: 24px; }
+        label { display: block; color: #334155; font-size: 13px; font-weight: 800; margin-bottom: 6px; }
+        input {
+            width: 100%;
+            height: 42px;
+            border: 1px solid #c7d2e0;
+            border-radius: 8px;
+            padding: 0 12px;
+            margin-bottom: 14px;
+            font-size: 15px;
+            outline: none;
+        }
+        input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12); }
+        button {
+            width: 100%;
+            height: 42px;
+            border: 0;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        button:hover { background: #1d4ed8; }
+        .error {
+            background: #fee2e2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <form class="login-panel" method="post" action="/login">
+        <h1>Suvshrabani AI Trading System</h1>
+        <div class="subtitle">Secure dashboard access</div>
+        {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        <label for="username">Username</label>
+        <input id="username" name="username" type="text" autocomplete="username" autofocus required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required>
+        <button type="submit">Login</button>
+    </form>
+</body>
+</html>
+"""
+
 
 class TradingDashboard:
     """
@@ -964,8 +1054,18 @@ class TradingDashboard:
         self.host = host
         self.port = port
         self.app = Flask(__name__)
+        self.app.secret_key = os.environ.get("DASHBOARD_SECRET_KEY") or secrets.token_hex(32)
         CORS(self.app)
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")
+
+        self._dashboard_username = os.environ.get("DASHBOARD_USERNAME", "suvendu")
+        self._dashboard_password = os.environ.get("DASHBOARD_PASSWORD", "")
+        self._auth_enabled = os.environ.get("DASHBOARD_AUTH_ENABLED", "").lower() in ("1", "true", "yes")
+        if self._dashboard_password and os.environ.get("DASHBOARD_AUTH_ENABLED") is None:
+            self._auth_enabled = True
+        if self._auth_enabled and not self._dashboard_password:
+            logger.warning("DASHBOARD_AUTH_ENABLED is true but DASHBOARD_PASSWORD is empty; dashboard login disabled")
+            self._auth_enabled = False
 
         # References to trading system components (set via set_components)
         self._portfolio = None
@@ -1025,11 +1125,53 @@ class TradingDashboard:
     def _setup_routes(self):
         """Register all Flask routes for dashboard and API."""
 
+        @self.app.before_request
+        def require_dashboard_login():
+            """Route browser/API traffic through the app login when enabled."""
+            if not self._auth_enabled:
+                return None
+            allowed_endpoints = {"login", "logout", "api_health", "static"}
+            if request.endpoint in allowed_endpoints:
+                return None
+            if session.get("dashboard_authenticated"):
+                return None
+            if request.path.startswith("/api/"):
+                return jsonify({"error": "Authentication required"}), 401
+            return redirect(url_for("login", next=request.full_path.rstrip("?")))
+
+        @self.app.route("/login", methods=["GET", "POST"])
+        def login():
+            """Render and process the dashboard login form."""
+            if not self._auth_enabled:
+                return redirect(url_for("index"))
+            error = None
+            if request.method == "POST":
+                username = request.form.get("username", "")
+                password = request.form.get("password", "")
+                username_ok = secrets.compare_digest(username, self._dashboard_username)
+                password_ok = secrets.compare_digest(password, self._dashboard_password)
+                if username_ok and password_ok:
+                    session["dashboard_authenticated"] = True
+                    return redirect(request.args.get("next") or url_for("index"))
+                error = "Invalid username or password"
+            return render_template_string(LOGIN_TEMPLATE, error=error)
+
+        @self.app.route("/logout")
+        def logout():
+            """Clear the dashboard session and return to login."""
+            session.clear()
+            return redirect(url_for("login"))
+
         @self.app.route("/")
         def index():
             """Serve the monitoring dashboard HTML page with mode-aware theme."""
             # Pass trading mode and base currency to template so theme and currency symbol change
-            return render_template_string(DASHBOARD_TEMPLATE, mode=self._mode, base_currency=self._base_currency)
+            return render_template_string(
+                DASHBOARD_TEMPLATE,
+                mode=self._mode,
+                base_currency=self._base_currency,
+                auth_enabled=self._auth_enabled,
+            )
 
         @self.app.route("/api/status")
         def api_status():
