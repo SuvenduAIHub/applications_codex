@@ -229,3 +229,11 @@ class TestRiskManager:
         assert "drawdown_pct" in summary
         assert "daily_pnl" in summary
         assert "trading_halted" in summary
+
+    def test_risk_summary_includes_configured_exposure_limit(self):
+        """Risk summary should expose current usage and configured max exposure."""
+        summary = self.rm.get_risk_summary()
+        assert summary["total_exposure_usd"] == 0
+        assert summary["max_exposure_pct"] == 30.0
+        assert summary["max_exposure_usd"] == pytest.approx(30000.0)
+        assert summary["exposure_used_pct"] == 0

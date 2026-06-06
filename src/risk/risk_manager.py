@@ -465,6 +465,10 @@ class RiskManager:
         Returns:
             Dict with key risk metrics for monitoring
         """
+        total_exposure = sum(
+            p.get("size_usd", 0) for p in self.open_positions.values()
+        )
+        max_exposure = self.current_portfolio_value * (self.config.max_portfolio_exposure_pct / 100)
         return {
             "portfolio_value": self.current_portfolio_value,
             "peak_value": self.peak_portfolio_value,
@@ -473,9 +477,10 @@ class RiskManager:
             "daily_pnl_pct": (self.daily_pnl / self.daily_start_value * 100
                               if self.daily_start_value > 0 else 0),
             "open_positions": len(self.open_positions),
-            "total_exposure_usd": sum(
-                p.get("size_usd", 0) for p in self.open_positions.values()
-            ),
+            "total_exposure_usd": total_exposure,
+            "max_exposure_pct": self.config.max_portfolio_exposure_pct,
+            "max_exposure_usd": max_exposure,
+            "exposure_used_pct": (total_exposure / max_exposure * 100 if max_exposure > 0 else 0),
             "consecutive_losses": self.consecutive_losses,
             "trading_halted": self.trading_halted,
             "halt_reason": self.halt_reason,
