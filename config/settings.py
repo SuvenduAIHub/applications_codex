@@ -166,6 +166,12 @@ class RiskConfig:
     # Take-profit percentage from entry price — targets meaningful moves
     default_take_profit_pct: float = 4.0
 
+    # Optional fixed price-distance take profit in USD.
+    # Set to 0 to let trades run until stop/trailing stop when dollar risk controls are enabled.
+    fixed_take_profit_usd: float = field(
+        default_factory=lambda: float(os.environ.get("FIXED_TAKE_PROFIT_USD", "0"))
+    )
+
     # Trailing stop activation percentage — locks in profit after 3% move
     trailing_stop_activation_pct: float = field(
         default_factory=lambda: float(os.environ.get("TRAILING_STOP_ACTIVATION_PCT", "3.0"))

@@ -1173,7 +1173,17 @@ class TradingDashboard:
             notional_usd = margin_usd * leverage
             quantity = notional_usd / price
             stop_loss = self._risk_manager.calculate_stop_loss(price, side)
-            take_profit = self._risk_manager.calculate_take_profit(price, side, stop_loss)
+            fixed_take_profit = getattr(self._risk_manager.config, "fixed_take_profit_usd", 0)
+            dollar_risk_enabled = (
+                getattr(self._risk_manager.config, "fixed_stop_loss_usd", 0) > 0
+                or getattr(self._risk_manager.config, "trailing_stop_activation_usd", 0) > 0
+            )
+            if fixed_take_profit > 0:
+                take_profit = price + fixed_take_profit if side == "buy" else price - fixed_take_profit
+            elif dollar_risk_enabled:
+                take_profit = None
+            else:
+                take_profit = self._risk_manager.calculate_take_profit(price, side, stop_loss)
             position = self._portfolio.open_position(
                 symbol=symbol,
                 side=side,

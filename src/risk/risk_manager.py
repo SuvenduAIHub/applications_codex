@@ -226,7 +226,7 @@ class RiskManager:
         size_usd: float,
         entry_price: float,
         stop_loss: float,
-        take_profit: float,
+        take_profit: Optional[float],
     ) -> None:
         """
         Register a new open position for tracking.
@@ -249,10 +249,11 @@ class RiskManager:
             "highest_price": entry_price,
             "lowest_price": entry_price,
         }
+        tp_text = f"{take_profit:.2f}" if take_profit is not None else "disabled"
         logger.info(
             f"Position registered: {side.upper()} {symbol} "
             f"${size_usd:,.2f} @ {entry_price:.2f} "
-            f"(SL={stop_loss:.2f}, TP={take_profit:.2f})"
+            f"(SL={stop_loss:.2f}, TP={tp_text})"
         )
 
     def close_position(self, symbol: str, exit_price: float) -> Optional[dict]:
@@ -389,12 +390,12 @@ class RiskManager:
         if pos["side"] == "buy":
             if current_price <= pos["stop_loss"]:
                 return "stop_loss"
-            if current_price >= pos["take_profit"]:
+            if pos.get("take_profit") is not None and current_price >= pos["take_profit"]:
                 return "take_profit"
         else:
             if current_price >= pos["stop_loss"]:
                 return "stop_loss"
-            if current_price <= pos["take_profit"]:
+            if pos.get("take_profit") is not None and current_price <= pos["take_profit"]:
                 return "take_profit"
 
         return None

@@ -389,11 +389,13 @@ def run_paper_trading(config: TradingSystemConfig):
                         )
 
                     # Check stop levels for open positions
+                    position_closed_this_tick = False
                     if symbol in portfolio.positions:
                         trigger = risk_manager.check_stop_levels(symbol, current_price)
                         if trigger:
                             result = portfolio.close_position(symbol, current_price, reason=trigger)
                             if result:
+                                position_closed_this_tick = True
                                 trade_logger.log_position_closed(
                                     symbol, result["pnl"], result["pnl_pct"], trigger
                                 )
@@ -407,6 +409,10 @@ def run_paper_trading(config: TradingSystemConfig):
                         new_stop = risk_manager.update_trailing_stop(symbol, current_price)
                         if new_stop and symbol in portfolio.positions:
                             portfolio.positions[symbol].stop_loss = new_stop
+
+                    if position_closed_this_tick:
+                        logger.info(f"{symbol} position closed by risk rule; skipping new entry until next tick")
+                        continue
 
                     # Generate signal — always check, no cooldown gating
                     signal = ensemble.generate_signal(enriched, symbol)
@@ -447,9 +453,14 @@ def run_paper_trading(config: TradingSystemConfig):
                                 risk_manager.calculate_stop_loss(current_price, "sell", atr=atr)
                                 if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
                             )
-                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
-                                current_price, "sell", stop_loss or (current_price + 2.5 * atr)
-                            )
+                            if config.risk.fixed_take_profit_usd > 0:
+                                take_profit = current_price - config.risk.fixed_take_profit_usd
+                            elif config.risk.fixed_stop_loss_usd > 0 or config.risk.trailing_stop_activation_usd > 0:
+                                take_profit = None
+                            else:
+                                take_profit = signal.take_profit or risk_manager.calculate_take_profit(
+                                    current_price, "sell", stop_loss or (current_price + 2.5 * atr)
+                                )
                             portfolio.open_position(
                                 symbol=symbol, side="sell", quantity=quantity,
                                 price=current_price,
@@ -490,9 +501,14 @@ def run_paper_trading(config: TradingSystemConfig):
                                 risk_manager.calculate_stop_loss(current_price, "buy", atr=atr)
                                 if config.risk.fixed_stop_loss_usd > 0 else signal.stop_loss
                             )
-                            take_profit = signal.take_profit or risk_manager.calculate_take_profit(
-                                current_price, "buy", stop_loss or (current_price - 2.5 * atr)
-                            )
+                            if config.risk.fixed_take_profit_usd > 0:
+                                take_profit = current_price + config.risk.fixed_take_profit_usd
+                            elif config.risk.fixed_stop_loss_usd > 0 or config.risk.trailing_stop_activation_usd > 0:
+                                take_profit = None
+                            else:
+                                take_profit = signal.take_profit or risk_manager.calculate_take_profit(
+                                    current_price, "buy", stop_loss or (current_price - 2.5 * atr)
+                                )
                             portfolio.open_position(
                                 symbol=symbol, side="buy", quantity=quantity,
                                 price=current_price,
