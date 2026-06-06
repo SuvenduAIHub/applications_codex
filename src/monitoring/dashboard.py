@@ -766,8 +766,8 @@ DASHBOARD_TEMPLATE = """
             const inr = portfolio.inr || {};
             const rate = data.currency?.inr_usd_rate || 0;
             const prices = data.prices || {};
-            document.getElementById('btc-price-pill').innerHTML = `BTC: ${CUR_SYM}${formatPrice(prices['BTC/USDT'])} <span class="price-change">live</span>`;
-            document.getElementById('gold-price-pill').innerHTML = `GOLD: ${CUR_SYM}${formatPrice(prices['XAU/USD'])} <span class="price-change">live</span>`;
+            document.getElementById('btc-price-pill').innerHTML = `BTC: ${CUR_SYM}${formatPrice(prices['BTC/USDT'])} <span class="price-change">feed</span>`;
+            document.getElementById('gold-price-pill').innerHTML = `GOLD: ${CUR_SYM}${formatPrice(prices['XAU/USD'])} <span class="price-change">feed</span>`;
             const inrValueRow = rate > 0 ? `<div class="metric"><span class="label">Value (INR)</span><span class="value" style="color:#ffd700">&#8377;${(inr.total_value || portfolio.total_value * rate).toLocaleString('en-IN', {minimumFractionDigits: 2})}</span></div>` : '';
             document.getElementById('portfolio-metrics').innerHTML = `
                 <div class="metric"><span class="label">Total Value</span><span class="value">${CUR_SYM}${(portfolio.total_value || 0).toLocaleString(LOCALE, {minimumFractionDigits: 2})}</span></div>
