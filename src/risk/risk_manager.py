@@ -1,6 +1,6 @@
 """
 Core risk management module.
-Enforces portfolio-level risk constraints including drawdown limits,
+Enforces portfolio-level risk constraints including fund-loss limits,
 position limits, daily loss caps, and asset allocation rules.
 """
 
@@ -22,7 +22,7 @@ class RiskManager:
         - Maximum risk per trade
         - Maximum portfolio exposure
         - Maximum concurrent positions
-        - Maximum drawdown (circuit breaker)
+        - Maximum loss from starting funds (circuit breaker)
         - Daily loss limit
         - Consecutive loss cooldown
         - Per-asset allocation limits
@@ -81,6 +81,7 @@ class RiskManager:
         """
         self.current_portfolio_value = portfolio_value
         self.peak_portfolio_value = max(self.peak_portfolio_value, portfolio_value)
+        self._check_fund_loss_halt()
 
     def can_trade(self, symbol: str, side: str, size_usd: float) -> tuple:
         """
@@ -112,11 +113,8 @@ class RiskManager:
             if symbol not in self.open_positions or side == self.open_positions[symbol].get("side"):
                 return False, f"Max concurrent positions ({self.config.max_concurrent_positions}) reached"
 
-        # Check maximum drawdown (circuit breaker)
-        current_drawdown = self._calculate_drawdown()
-        if abs(current_drawdown) >= self.config.max_drawdown_pct:
-            self.trading_halted = True
-            self.halt_reason = f"Max drawdown breached: {current_drawdown:.2f}%"
+        # Check maximum fund loss from the starting fund, not peak-based drawdown.
+        if self._check_fund_loss_halt():
             return False, self.halt_reason
 
         # Check consecutive loss cooldown
@@ -299,6 +297,7 @@ class RiskManager:
         self.daily_pnl += pnl_usd
         self.current_portfolio_value += pnl_usd
         self.peak_portfolio_value = max(self.peak_portfolio_value, self.current_portfolio_value)
+        self._check_fund_loss_halt()
 
         # Track consecutive losses
         if pnl_usd < 0:
@@ -499,11 +498,19 @@ class RiskManager:
             p.get("notional_usd", p.get("size_usd", 0)) for p in self.open_positions.values()
         )
         max_exposure = self.current_portfolio_value * (self.config.max_portfolio_exposure_pct / 100)
+        fund_loss_usd = self._calculate_fund_loss_usd()
+        max_fund_loss_usd = self._calculate_max_fund_loss_usd()
+        fund_loss_pct = (fund_loss_usd / self.daily_start_value * 100
+                         if self.daily_start_value > 0 else 0)
         return {
             "portfolio_value": self.current_portfolio_value,
             "peak_value": self.peak_portfolio_value,
             "drawdown_pct": self._calculate_drawdown(),
             "max_drawdown_pct": self.config.max_drawdown_pct,
+            "fund_loss_pct": fund_loss_pct,
+            "fund_loss_usd": fund_loss_usd,
+            "max_fund_loss_pct": self.config.max_drawdown_pct,
+            "max_fund_loss_usd": max_fund_loss_usd,
             "daily_pnl": self.daily_pnl,
             "daily_pnl_pct": (self.daily_pnl / self.daily_start_value * 100
                               if self.daily_start_value > 0 else 0),
@@ -542,6 +549,32 @@ class RiskManager:
             return 0.0
         dd = (self.current_portfolio_value - self.peak_portfolio_value) / self.peak_portfolio_value * 100
         return dd
+
+    def _calculate_fund_loss_usd(self) -> float:
+        """Return loss measured from the starting fund value."""
+        if self.daily_start_value <= 0:
+            return 0.0
+        return max(0.0, self.daily_start_value - self.current_portfolio_value)
+
+    def _calculate_max_fund_loss_usd(self) -> float:
+        """Return the maximum allowed loss from the starting fund value."""
+        if self.daily_start_value <= 0:
+            return 0.0
+        return self.daily_start_value * (self.config.max_drawdown_pct / 100)
+
+    def _check_fund_loss_halt(self) -> bool:
+        """Halt trading when loss reaches the configured share of starting funds."""
+        max_loss_usd = self._calculate_max_fund_loss_usd()
+        fund_loss_usd = self._calculate_fund_loss_usd()
+        if max_loss_usd > 0 and fund_loss_usd >= max_loss_usd:
+            self.trading_halted = True
+            self.halt_reason = (
+                f"Fund loss limit reached: ${fund_loss_usd:,.2f} >= "
+                f"${max_loss_usd:,.2f} ({self.config.max_drawdown_pct:.2f}% of starting fund)"
+            )
+            logger.warning(self.halt_reason)
+            return True
+        return False
 
     def _in_loss_cooldown(self) -> bool:
         """Check if the system is in a consecutive-loss cooldown period."""

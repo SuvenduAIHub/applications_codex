@@ -155,6 +155,36 @@ class TestRiskManager:
             self.rm.close_position("BTC/USDT", 48000)  # Loss
         assert self.rm.consecutive_losses == 3
 
+    def test_fund_loss_limit_halts_from_starting_fund_value(self):
+        """A 45% fund loss limit on $1,000 should halt after a $450 loss."""
+        config = RiskConfig(max_drawdown_pct=45.0)
+        rm = RiskManager(config)
+        rm.initialize(1000.0)
+
+        rm.update_portfolio_value(551.0)
+        allowed, _ = rm.can_trade("BTC/USDT", "buy", 100)
+        assert allowed
+
+        rm.update_portfolio_value(550.0)
+        allowed, reason = rm.can_trade("BTC/USDT", "buy", 100)
+        assert not allowed
+        assert "fund loss limit" in reason.lower()
+        assert rm.trading_halted
+
+    def test_fund_loss_limit_does_not_use_peak_drawdown(self):
+        """The halt threshold should be measured from starting funds, not a later peak."""
+        config = RiskConfig(max_drawdown_pct=45.0)
+        rm = RiskManager(config)
+        rm.initialize(1000.0)
+
+        rm.update_portfolio_value(1200.0)
+        rm.update_portfolio_value(650.0)
+
+        allowed, reason = rm.can_trade("BTC/USDT", "buy", 100)
+        assert allowed
+        assert reason == "Trade approved"
+        assert not rm.trading_halted
+
     def test_risk_parity_allocation(self):
         """Risk parity should allocate more to less volatile asset."""
         # BTC is more volatile than Gold
@@ -312,6 +342,8 @@ class TestRiskManager:
         assert summary["max_daily_loss_pct"] == 5.0
         assert summary["max_daily_loss_usd"] == pytest.approx(5000.0)
         assert summary["max_drawdown_pct"] == 15.0
+        assert summary["max_fund_loss_pct"] == 15.0
+        assert summary["max_fund_loss_usd"] == pytest.approx(15000.0)
 
     def test_risk_config_reads_loss_limits_from_environment(self, monkeypatch):
         monkeypatch.setenv("MAX_DAILY_LOSS_PCT", "40")

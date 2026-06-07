@@ -149,7 +149,8 @@ class RiskConfig:
     # Maximum number of concurrent open positions
     max_concurrent_positions: int = 2
 
-    # Maximum drawdown before system halts trading (percentage)
+    # Maximum loss from starting fund before system halts trading (percentage).
+    # Example: 45 means a $1,000 fund halts trading after a $450 account loss.
     max_drawdown_pct: float = field(
         default_factory=lambda: float(os.environ.get("MAX_DRAWDOWN_PCT", "15.0"))
     )
