@@ -210,8 +210,8 @@ class RiskConfig:
 
     # Per-asset allocation limits (percentage of total portfolio) — high for active scalping
     asset_allocation_limits: Dict[str, float] = field(default_factory=lambda: {
-        "BTC/USDT": 40.0,
-        "XAU/USD": 40.0,
+        "BTC/USDT": float(os.environ.get("ASSET_ALLOCATION_LIMIT_PCT", "100.0")),
+        "XAU/USD": float(os.environ.get("ASSET_ALLOCATION_LIMIT_PCT", "100.0")),
     })
 
 

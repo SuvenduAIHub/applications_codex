@@ -128,6 +128,15 @@ def is_market_open(symbol: str) -> bool:
     return True
 
 
+def calculate_available_exposure_margin(portfolio, risk_manager, risk_config) -> float:
+    """Return remaining margin allowed by the configured portfolio exposure limit."""
+    total_exposure = sum(
+        pos.get("size_usd", 0) for pos in risk_manager.open_positions.values()
+    )
+    max_exposure = portfolio.total_value * (risk_config.max_portfolio_exposure_pct / 100)
+    return max(0.0, max_exposure - total_exposure)
+
+
 def run_backtest(config: TradingSystemConfig, visualize: bool = False) -> dict:
     """
     Execute a full backtest cycle on historical data.
@@ -454,11 +463,8 @@ def run_paper_trading(config: TradingSystemConfig):
 
                     # SELL signal + no position → open short directly
                     elif signal.is_sell and signal.confidence >= 0.62:
-                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
-                            method="volatility",
-                            portfolio_value=portfolio.total_value,
-                            current_price=current_price,
-                            atr=atr,
+                        base_size_usd = calculate_available_exposure_margin(
+                            portfolio, risk_manager, config.risk
                         )
                         size_usd = base_size_usd * config.execution.leverage
                         can_trade, reason = risk_manager.can_trade(symbol, "sell", base_size_usd)
@@ -505,11 +511,8 @@ def run_paper_trading(config: TradingSystemConfig):
 
                     # BUY signal + no position → open long directly
                     elif signal.is_buy and signal.confidence >= 0.62:
-                        base_size_usd = risk_manager.position_sizer.calculate_position_size(
-                            method="volatility",
-                            portfolio_value=portfolio.total_value,
-                            current_price=current_price,
-                            atr=atr,
+                        base_size_usd = calculate_available_exposure_margin(
+                            portfolio, risk_manager, config.risk
                         )
                         size_usd = base_size_usd * config.execution.leverage
                         can_trade, reason = risk_manager.can_trade(symbol, "buy", base_size_usd)
