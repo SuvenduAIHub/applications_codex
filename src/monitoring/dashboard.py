@@ -783,7 +783,9 @@ DASHBOARD_TEMPLATE = """
             const maxExposurePct = risk.max_exposure_pct || 0;
             document.getElementById('risk-metrics').innerHTML = `
                 <div class="metric"><span class="label">Drawdown</span><span class="value ${(risk.drawdown_pct || 0) < -5 ? 'negative' : 'neutral'}">${(risk.drawdown_pct || 0).toFixed(2)}%</span></div>
+                <div class="metric"><span class="label">Max Drawdown</span><span class="value">${(risk.max_drawdown_pct || 0).toFixed(0)}%</span></div>
                 <div class="metric"><span class="label">Daily PnL</span><span class="value ${(risk.daily_pnl || 0) >= 0 ? 'positive' : 'negative'}">${CUR_SYM}${(risk.daily_pnl || 0).toFixed(2)}</span></div>
+                <div class="metric"><span class="label">Max Daily Loss</span><span class="value">${CUR_SYM}${(risk.max_daily_loss_usd || 0).toFixed(2)} (${(risk.max_daily_loss_pct || 0).toFixed(0)}%)</span></div>
                 <div class="metric"><span class="label">Open Positions</span><span class="value">${risk.open_positions || 0}</span></div>
                 <div class="metric"><span class="label">Used Exposure</span><span class="value">${CUR_SYM}${(risk.total_exposure_usd || 0).toFixed(2)} (${exposureUsedPct.toFixed(1)}%)</span></div>
                 <div class="metric"><span class="label">Max Exposure</span><span class="value">${CUR_SYM}${(risk.max_exposure_usd || 0).toFixed(2)} (${maxExposurePct.toFixed(0)}%)</span></div>

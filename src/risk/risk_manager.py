@@ -473,9 +473,12 @@ class RiskManager:
             "portfolio_value": self.current_portfolio_value,
             "peak_value": self.peak_portfolio_value,
             "drawdown_pct": self._calculate_drawdown(),
+            "max_drawdown_pct": self.config.max_drawdown_pct,
             "daily_pnl": self.daily_pnl,
             "daily_pnl_pct": (self.daily_pnl / self.daily_start_value * 100
                               if self.daily_start_value > 0 else 0),
+            "max_daily_loss_pct": self.config.max_daily_loss_pct,
+            "max_daily_loss_usd": self.daily_start_value * (self.config.max_daily_loss_pct / 100),
             "open_positions": len(self.open_positions),
             "total_exposure_usd": total_exposure,
             "max_exposure_pct": self.config.max_portfolio_exposure_pct,

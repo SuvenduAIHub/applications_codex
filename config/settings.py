@@ -150,7 +150,9 @@ class RiskConfig:
     max_concurrent_positions: int = 2
 
     # Maximum drawdown before system halts trading (percentage)
-    max_drawdown_pct: float = 15.0
+    max_drawdown_pct: float = field(
+        default_factory=lambda: float(os.environ.get("MAX_DRAWDOWN_PCT", "15.0"))
+    )
 
     # Stop-loss percentage from entry price — wider for bigger profit targets
     default_stop_loss_pct: float = field(
@@ -196,7 +198,9 @@ class RiskConfig:
     min_risk_reward_ratio: float = 1.5
 
     # Maximum daily loss limit (percentage of portfolio)
-    max_daily_loss_pct: float = 2.0
+    max_daily_loss_pct: float = field(
+        default_factory=lambda: float(os.environ.get("MAX_DAILY_LOSS_PCT", "2.0"))
+    )
 
     # Maximum number of losing trades before cooldown
     max_consecutive_losses: int = 3

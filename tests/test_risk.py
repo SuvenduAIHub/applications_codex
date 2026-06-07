@@ -237,3 +237,17 @@ class TestRiskManager:
         assert summary["max_exposure_pct"] == 30.0
         assert summary["max_exposure_usd"] == pytest.approx(30000.0)
         assert summary["exposure_used_pct"] == 0
+
+    def test_risk_summary_includes_loss_and_drawdown_limits(self):
+        """Risk summary should expose configured loss and drawdown thresholds."""
+        summary = self.rm.get_risk_summary()
+        assert summary["max_daily_loss_pct"] == 5.0
+        assert summary["max_daily_loss_usd"] == pytest.approx(5000.0)
+        assert summary["max_drawdown_pct"] == 15.0
+
+    def test_risk_config_reads_loss_limits_from_environment(self, monkeypatch):
+        monkeypatch.setenv("MAX_DAILY_LOSS_PCT", "40")
+        monkeypatch.setenv("MAX_DRAWDOWN_PCT", "55")
+        config = RiskConfig()
+        assert config.max_daily_loss_pct == 40.0
+        assert config.max_drawdown_pct == 55.0
