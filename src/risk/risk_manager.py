@@ -258,6 +258,7 @@ class RiskManager:
             "opened_at": datetime.now(timezone.utc),
             "highest_price": entry_price,
             "lowest_price": entry_price,
+            "best_pnl_usd": 0.0,
         }
         tp_text = f"{take_profit:.2f}" if take_profit is not None else "disabled"
         logger.info(
@@ -403,6 +404,32 @@ class RiskManager:
             return None
 
         pos = self.open_positions[symbol]
+        entry = pos["entry_price"]
+        quantity = pos.get("quantity", 0.0) or (
+            pos.get("notional_usd", 0.0) / entry if entry > 0 else 0.0
+        )
+
+        if pos["side"] == "buy":
+            pos["highest_price"] = max(pos["highest_price"], current_price)
+            current_pnl = (current_price - entry) * quantity
+        else:
+            pos["lowest_price"] = min(pos["lowest_price"], current_price)
+            current_pnl = (entry - current_price) * quantity
+
+        pos["best_pnl_usd"] = max(pos.get("best_pnl_usd", 0.0), current_pnl)
+        giveback_activation = self.config.profit_giveback_activation_usd
+        giveback_exit_loss = self.config.profit_giveback_exit_loss_usd
+        if (
+            giveback_activation > 0
+            and giveback_exit_loss > 0
+            and pos["best_pnl_usd"] >= giveback_activation
+            and current_pnl <= -giveback_exit_loss
+        ):
+            logger.info(
+                f"Profit giveback exit for {symbol}: best=${pos['best_pnl_usd']:,.2f}, "
+                f"current=${current_pnl:,.2f}"
+            )
+            return "profit_giveback"
 
         if pos["side"] == "buy":
             if current_price <= pos["stop_loss"]:

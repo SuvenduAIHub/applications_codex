@@ -194,6 +194,14 @@ class RiskConfig:
         default_factory=lambda: float(os.environ.get("TRAILING_STOP_DISTANCE_USD", "0"))
     )
 
+    # Exit if a trade first reaches this profit, then gives back into loss.
+    profit_giveback_activation_usd: float = field(
+        default_factory=lambda: float(os.environ.get("PROFIT_GIVEBACK_ACTIVATION_USD", "0"))
+    )
+    profit_giveback_exit_loss_usd: float = field(
+        default_factory=lambda: float(os.environ.get("PROFIT_GIVEBACK_EXIT_LOSS_USD", "0"))
+    )
+
     # Risk-reward ratio minimum threshold
     min_risk_reward_ratio: float = 1.5
 

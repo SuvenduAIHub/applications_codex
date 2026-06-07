@@ -222,6 +222,58 @@ class TestRiskManager:
 
         assert new_stop == pytest.approx(60384.0)
 
+    def test_profit_giveback_exit_after_profit_turns_to_loss(self):
+        """Should exit if profit reaches activation and later falls into configured loss."""
+        config = RiskConfig(
+            fixed_stop_loss_usd=200,
+            profit_giveback_activation_usd=50,
+            profit_giveback_exit_loss_usd=20,
+        )
+        rm = RiskManager(config)
+        rm.initialize(1000.0)
+        entry = 60000.0
+        margin = 100.0
+        notional = margin * 50
+        stop_loss = rm.calculate_stop_loss(entry, "buy", position_notional_usd=notional)
+        rm.register_position(
+            "BTC/USDT",
+            "buy",
+            margin,
+            entry,
+            stop_loss,
+            None,
+            notional_usd=notional,
+        )
+
+        assert rm.check_stop_levels("BTC/USDT", 60600.0) is None
+        assert rm.check_stop_levels("BTC/USDT", 59760.0) == "profit_giveback"
+
+    def test_profit_giveback_exit_for_short_positions(self):
+        """Profit giveback logic should work for short positions too."""
+        config = RiskConfig(
+            fixed_stop_loss_usd=200,
+            profit_giveback_activation_usd=50,
+            profit_giveback_exit_loss_usd=20,
+        )
+        rm = RiskManager(config)
+        rm.initialize(1000.0)
+        entry = 60000.0
+        margin = 100.0
+        notional = margin * 50
+        stop_loss = rm.calculate_stop_loss(entry, "sell", position_notional_usd=notional)
+        rm.register_position(
+            "BTC/USDT",
+            "sell",
+            margin,
+            entry,
+            stop_loss,
+            None,
+            notional_usd=notional,
+        )
+
+        assert rm.check_stop_levels("BTC/USDT", 59400.0) is None
+        assert rm.check_stop_levels("BTC/USDT", 60240.0) == "profit_giveback"
+
     def test_risk_summary(self):
         """Risk summary should contain expected keys."""
         summary = self.rm.get_risk_summary()
