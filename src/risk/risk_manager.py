@@ -468,6 +468,9 @@ class RiskManager:
         total_exposure = sum(
             p.get("size_usd", 0) for p in self.open_positions.values()
         )
+        total_notional_exposure = sum(
+            p.get("notional_usd", p.get("size_usd", 0)) for p in self.open_positions.values()
+        )
         max_exposure = self.current_portfolio_value * (self.config.max_portfolio_exposure_pct / 100)
         return {
             "portfolio_value": self.current_portfolio_value,
@@ -481,6 +484,7 @@ class RiskManager:
             "max_daily_loss_usd": self.daily_start_value * (self.config.max_daily_loss_pct / 100),
             "open_positions": len(self.open_positions),
             "total_exposure_usd": total_exposure,
+            "total_notional_exposure_usd": total_notional_exposure,
             "max_exposure_pct": self.config.max_portfolio_exposure_pct,
             "max_exposure_usd": max_exposure,
             "exposure_used_pct": (total_exposure / max_exposure * 100 if max_exposure > 0 else 0),

@@ -234,9 +234,25 @@ class TestRiskManager:
         """Risk summary should expose current usage and configured max exposure."""
         summary = self.rm.get_risk_summary()
         assert summary["total_exposure_usd"] == 0
+        assert summary["total_notional_exposure_usd"] == 0
         assert summary["max_exposure_pct"] == 30.0
         assert summary["max_exposure_usd"] == pytest.approx(30000.0)
         assert summary["exposure_used_pct"] == 0
+
+    def test_risk_summary_includes_leveraged_notional_exposure(self):
+        """Risk summary should report margin and leveraged notional separately."""
+        self.rm.register_position(
+            "BTC/USDT",
+            "buy",
+            size_usd=100,
+            entry_price=50000,
+            stop_loss=49000,
+            take_profit=None,
+            notional_usd=5000,
+        )
+        summary = self.rm.get_risk_summary()
+        assert summary["total_exposure_usd"] == 100
+        assert summary["total_notional_exposure_usd"] == 5000
 
     def test_risk_summary_includes_loss_and_drawdown_limits(self):
         """Risk summary should expose configured loss and drawdown thresholds."""
