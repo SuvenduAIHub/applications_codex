@@ -779,21 +779,12 @@ DASHBOARD_TEMPLATE = """
             `;
 
             const risk = data.risk || {};
-            const marginUsedPct = risk.exposure_used_pct || 0;
-            const maxExposurePct = risk.max_exposure_pct || 0;
-            const leverage = (data.system || {}).leverage || 1;
-            const usedNotional = risk.total_notional_exposure_usd || risk.total_exposure_usd || 0;
-            const maxNotional = (risk.max_exposure_usd || 0) * leverage;
-            const notionalUsedPct = maxNotional > 0 ? (usedNotional / maxNotional * 100) : 0;
             document.getElementById('risk-metrics').innerHTML = `
                 <div class="metric"><span class="label">Fund Loss</span><span class="value ${(risk.fund_loss_pct || 0) > 0 ? 'negative' : 'neutral'}">${CUR_SYM}${(risk.fund_loss_usd || 0).toFixed(2)} (${(risk.fund_loss_pct || 0).toFixed(2)}%)</span></div>
                 <div class="metric"><span class="label">Max Fund Loss</span><span class="value">${CUR_SYM}${(risk.max_fund_loss_usd || 0).toFixed(2)} (${(risk.max_fund_loss_pct || risk.max_drawdown_pct || 0).toFixed(0)}%)</span></div>
                 <div class="metric"><span class="label">Daily PnL</span><span class="value ${(risk.daily_pnl || 0) >= 0 ? 'positive' : 'negative'}">${CUR_SYM}${(risk.daily_pnl || 0).toFixed(2)}</span></div>
                 <div class="metric"><span class="label">Max Daily Loss</span><span class="value">${CUR_SYM}${(risk.max_daily_loss_usd || 0).toFixed(2)} (${(risk.max_daily_loss_pct || 0).toFixed(0)}%)</span></div>
                 <div class="metric"><span class="label">Open Positions</span><span class="value">${risk.open_positions || 0}</span></div>
-                <div class="metric"><span class="label">Used Exposure</span><span class="value">${CUR_SYM}${usedNotional.toFixed(2)} (${notionalUsedPct.toFixed(1)}%)</span></div>
-                <div class="metric"><span class="label">Max Exposure</span><span class="value">${CUR_SYM}${maxNotional.toFixed(2)} (${maxExposurePct.toFixed(0)}% x ${leverage}x)</span></div>
-                <div class="metric"><span class="label">Margin Used</span><span class="value">${CUR_SYM}${(risk.total_exposure_usd || 0).toFixed(2)} (${marginUsedPct.toFixed(1)}%)</span></div>
                 <div class="metric"><span class="label">Consec. Losses</span><span class="value">${risk.consecutive_losses || 0}</span></div>
             `;
 

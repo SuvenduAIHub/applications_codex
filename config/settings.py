@@ -150,9 +150,9 @@ class RiskConfig:
     max_concurrent_positions: int = 2
 
     # Maximum loss from starting fund before system halts trading (percentage).
-    # Example: 45 means a $1,000 fund halts trading after a $450 account loss.
+    # Example: 100 means a $1,000 fund halts trading after a $1,000 account loss.
     max_drawdown_pct: float = field(
-        default_factory=lambda: float(os.environ.get("MAX_DRAWDOWN_PCT", "15.0"))
+        default_factory=lambda: float(os.environ.get("MAX_DRAWDOWN_PCT", "100.0"))
     )
 
     # Stop-loss percentage from entry price — wider for bigger profit targets
@@ -206,9 +206,9 @@ class RiskConfig:
     # Risk-reward ratio minimum threshold
     min_risk_reward_ratio: float = 1.5
 
-    # Maximum daily loss limit (percentage of portfolio)
+    # Maximum daily loss limit (percentage of starting fund)
     max_daily_loss_pct: float = field(
-        default_factory=lambda: float(os.environ.get("MAX_DAILY_LOSS_PCT", "2.0"))
+        default_factory=lambda: float(os.environ.get("MAX_DAILY_LOSS_PCT", "100.0"))
     )
 
     # Maximum number of losing trades before cooldown

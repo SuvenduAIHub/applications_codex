@@ -351,3 +351,8 @@ class TestRiskManager:
         config = RiskConfig()
         assert config.max_daily_loss_pct == 40.0
         assert config.max_drawdown_pct == 55.0
+
+    def test_risk_config_defaults_loss_limits_to_full_fund(self):
+        config = RiskConfig()
+        assert config.max_daily_loss_pct == 100.0
+        assert config.max_drawdown_pct == 100.0
